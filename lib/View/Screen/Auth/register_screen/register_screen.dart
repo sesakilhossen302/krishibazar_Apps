@@ -94,7 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 20),
 
                   // General Information Section
-                  Text('মৌলিক ব্যক্তিগত তথ্য', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textDark)),
+                  const Text('মৌলিক ব্যক্তিগত তথ্য', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textDark)),
                   const SizedBox(height: 12),
 
                   CustomTextField(
@@ -127,8 +127,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 24),
 
                   // Mandatory NID Photo Upload Section (For Both Farmer & Buyer)
-                  Text(
-                    'এনআইডি (NID) কার্ডের ছবি (বাধ্যতামূলক)',
+                  const Text(
+                    'এনআইডি (NID) কার্ডের ছবি (ক্যামেরা/গ্যালারি)',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textDark),
                   ),
                   const SizedBox(height: 12),
@@ -138,7 +138,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: _buildUploadCard(
                           title: StaticString.nidFrontLabel,
                           fileName: _controller.nidFrontImageName,
-                          onTap: _controller.pickNidFront,
+                          isUploading: _controller.isUploadingNidFront,
+                          onTap: () => _controller.pickNidFront(context),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -146,7 +147,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: _buildUploadCard(
                           title: StaticString.nidBackLabel,
                           fileName: _controller.nidBackImageName,
-                          onTap: _controller.pickNidBack,
+                          isUploading: _controller.isUploadingNidBack,
+                          onTap: () => _controller.pickNidBack(context),
                         ),
                       ),
                     ],
@@ -156,7 +158,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   // Role-Specific Sections
                   if (isBuyer) ...[
                     // Buyer / Shopkeeper Section
-                    Text(
+                    const Text(
                       'দোকান ও ব্যবসা সংক্রান্ত তথ্য (দোকানদার/ক্রেতা)',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textDark),
                     ),
@@ -184,19 +186,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 16),
 
                     // Trade License Photo Upload (Mandatory for Buyer)
-                    Text(
-                      'ট্রেড লাইসেন্সের ছবি (বাধ্যতামূলক)',
+                    const Text(
+                      'ট্রেড লাইসেন্সের ছবি (ক্যামেরা/গ্যালারি)',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textDark),
                     ),
                     const SizedBox(height: 8),
                     _buildUploadCard(
                       title: StaticString.tradeLicenseLabel,
                       fileName: _controller.tradeLicenseImageName,
-                      onTap: _controller.pickTradeLicense,
+                      isUploading: _controller.isUploadingTradeLicense,
+                      onTap: () => _controller.pickTradeLicense(context),
                     ),
                   ] else ...[
                     // Farmer / Seller Section
-                    Text(
+                    const Text(
                       'কৃষি তথ্য ও এলাকা (কৃষক)',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textDark),
                     ),
@@ -234,7 +237,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 28),
 
                   CustomButton(
-                    text: _controller.isLoading ? StaticString.loading : StaticString.registerSubmitButton,
+                    text: _controller.isLoading ? 'ওটিপি পাঠানো হচ্ছে...' : 'ওটিপি সেন্ড করুন ও এগিয়ে যান',
                     onTap: _controller.isLoading ? null : () => _controller.submitRegistration(context),
                   ),
                   const SizedBox(height: 20),
@@ -250,11 +253,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildUploadCard({
     required String title,
     required String? fileName,
+    required bool isUploading,
     required VoidCallback onTap,
   }) {
     final isUploaded = fileName != null;
     return InkWell(
-      onTap: onTap,
+      onTap: isUploading ? null : onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -267,11 +271,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         child: Column(
           children: [
-            Icon(
-              isUploaded ? Icons.check_circle_rounded : Icons.cloud_upload_outlined,
-              color: isUploaded ? AppColors.primaryGreen : AppColors.textMuted,
-              size: 32,
-            ),
+            if (isUploading)
+              const SizedBox(
+                height: 32,
+                width: 32,
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.primaryGreen),
+              )
+            else
+              Icon(
+                isUploaded ? Icons.check_circle_rounded : Icons.add_a_photo_outlined,
+                color: isUploaded ? AppColors.primaryGreen : AppColors.primaryGreen,
+                size: 32,
+              ),
             const SizedBox(height: 8),
             Text(
               title,
@@ -284,7 +295,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              isUploaded ? fileName : StaticString.uploadPhotoPrompt,
+              isUploading
+                  ? "আপলোড হচ্ছে..."
+                  : (isUploaded ? fileName : "ক্যামেরা / গ্যালারি"),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 10,

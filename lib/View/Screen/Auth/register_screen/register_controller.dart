@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../Core/AppRoute/app_route.dart';
 import '../../../../global/Model/krishi_models.dart';
-import '../../../../helper/shared_pref/shared_pref_helper.dart';
+import '../../../../service/api_client.dart';
+import '../../../Widgegt/image_picker_dialog/image_picker_dialog.dart';
 import 'register_model.dart';
 
 class RegisterController extends ChangeNotifier {
@@ -22,8 +24,16 @@ class RegisterController extends ChangeNotifier {
   final TextEditingController farmerLocationController = TextEditingController();
 
   String? nidFrontImageName;
+  String? nidFrontUrl;
+  bool isUploadingNidFront = false;
+
   String? nidBackImageName;
+  String? nidBackUrl;
+  bool isUploadingNidBack = false;
+
   String? tradeLicenseImageName;
+  String? tradeLicenseUrl;
+  bool isUploadingTradeLicense = false;
 
   String? errorMessage;
   bool isLoading = false;
@@ -32,67 +42,135 @@ class RegisterController extends ChangeNotifier {
     formData = RegistrationFormData(role: role);
   }
 
-  void pickNidFront() {
-    nidFrontImageName = "nid_front_uploaded.jpg";
-    formData.nidFrontPath = "path/to/nid_front_uploaded.jpg";
+  /// Pick & Upload NID Front Image via Camera/Gallery
+  Future<void> pickNidFront(BuildContext context) async {
+    final File? file = await ImagePickerDialog.showImageSourceSelector(context);
+    if (file == null) return;
+
+    nidFrontImageName = file.path.split(Platform.pathSeparator).last;
+    isUploadingNidFront = true;
+    notifyListeners();
+
+    final res = await ApiClient.uploadImageFile(file);
+    isUploadingNidFront = false;
+
+    if (res["success"] == true) {
+      nidFrontUrl = res["full_url"];
+      formData.nidFrontPath = res["full_url"];
+    } else {
+      errorMessage = res["message"];
+    }
     notifyListeners();
   }
 
-  void pickNidBack() {
-    nidBackImageName = "nid_back_uploaded.jpg";
-    formData.nidBackPath = "path/to/nid_back_uploaded.jpg";
+  /// Pick & Upload NID Back Image via Camera/Gallery
+  Future<void> pickNidBack(BuildContext context) async {
+    final File? file = await ImagePickerDialog.showImageSourceSelector(context);
+    if (file == null) return;
+
+    nidBackImageName = file.path.split(Platform.pathSeparator).last;
+    isUploadingNidBack = true;
+    notifyListeners();
+
+    final res = await ApiClient.uploadImageFile(file);
+    isUploadingNidBack = false;
+
+    if (res["success"] == true) {
+      nidBackUrl = res["full_url"];
+      formData.nidBackPath = res["full_url"];
+    } else {
+      errorMessage = res["message"];
+    }
     notifyListeners();
   }
 
-  void pickTradeLicense() {
-    tradeLicenseImageName = "trade_license_uploaded.jpg";
-    formData.tradeLicensePath = "path/to/trade_license_uploaded.jpg";
+  /// Pick & Upload Trade License Image via Camera/Gallery
+  Future<void> pickTradeLicense(BuildContext context) async {
+    final File? file = await ImagePickerDialog.showImageSourceSelector(context);
+    if (file == null) return;
+
+    tradeLicenseImageName = file.path.split(Platform.pathSeparator).last;
+    isUploadingTradeLicense = true;
+    notifyListeners();
+
+    final res = await ApiClient.uploadImageFile(file);
+    isUploadingTradeLicense = false;
+
+    if (res["success"] == true) {
+      tradeLicenseUrl = res["full_url"];
+      formData.tradeLicensePath = res["full_url"];
+    } else {
+      errorMessage = res["message"];
+    }
     notifyListeners();
   }
 
+  /// Submit Registration and Trigger Gmail OTP Sending
   Future<void> submitRegistration(BuildContext context) async {
-    final name = nameController.text.trim().isNotEmpty
-        ? nameController.text.trim()
-        : (formData.role == UserRole.buyer ? 'পাইকারি ক্রেতা' : 'কৃষক ভাই');
-    final email = emailController.text.trim().isNotEmpty
-        ? emailController.text.trim()
-        : 'user@krishibazar.bd';
-    final phone = phoneController.text.trim().isNotEmpty
-        ? phoneController.text.trim()
-        : '01700000000';
+    final name = nameController.text.trim();
+    final email = emailController.text.trim();
+    final phone = phoneController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
+      errorMessage = "অনুগ্রহ করে নাম, ফোন, জিমেইল ও পাসওয়ার্ড পূরণ করুন।";
+      notifyListeners();
+      return;
+    }
+
+    if (formData.role == UserRole.buyer && shopNameController.text.trim().isEmpty) {
+      errorMessage = "পাইকার সাইনআপের জন্য ব্যবসা/আড়তের নাম প্রদান করুন।";
+      notifyListeners();
+      return;
+    }
 
     isLoading = true;
     errorMessage = null;
     notifyListeners();
 
-    // Save preliminary registration info to SharedPreferences
-    await SharedPrefHelper.saveUserSession(
-      isLoggedIn: false,
-      role: formData.role.name,
-      name: name,
+    // 1. Send OTP to Gmail
+    final otpRes = await ApiClient.sendOtp(
       email: email,
+      name: name,
+      purpose: "signup",
       phone: phone,
-      nidFront: formData.nidFrontPath,
-      nidBack: formData.nidBackPath,
-      tradeLicense: formData.tradeLicensePath,
-      shopName: shopNameController.text.trim(),
-      businessLicenseNo: businessLicenseController.text.trim(),
-      shopLocation: shopLocationController.text.trim(),
     );
 
     isLoading = false;
     notifyListeners();
 
-    if (context.mounted) {
-      Navigator.pushNamed(
-        context,
-        AppRoute.otpScreen,
-        arguments: {
-          'role': formData.role,
-          'email': email,
-          'phone': phone,
-        },
-      );
+    if (otpRes["success"] == true) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(otpRes["message"] ?? "আপনার জিমেইলে ওটিপি কোড পাঠানো হয়েছে।"),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.pushNamed(
+          context,
+          AppRoute.otpScreen,
+          arguments: {
+            'role': formData.role,
+            'name': name,
+            'email': email,
+            'phone': phone,
+            'password': password,
+            'nidFrontUrl': nidFrontUrl ?? "",
+            'nidBackUrl': nidBackUrl ?? "",
+            'tradeLicenseUrl': tradeLicenseUrl ?? "",
+            'businessName': shopNameController.text.trim(),
+            'businessType': businessLicenseController.text.trim(),
+            'arotLocation': shopLocationController.text.trim(),
+            'farmerType': farmerTypeController.text.trim(),
+            'farmerLocation': farmerLocationController.text.trim(),
+          },
+        );
+      }
+    } else {
+      errorMessage = otpRes["message"] ?? "ওটিপি পাঠাতে সমস্যা হয়েছে।";
+      notifyListeners();
     }
   }
 
