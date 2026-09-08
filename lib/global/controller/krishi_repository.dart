@@ -51,10 +51,10 @@ class KrishiRepository extends ChangeNotifier {
   List<MarketplaceOrder> _orders = [];
   List<MarketplaceOrder> get orders => _orders;
 
-  List<Dispute> _disputes = [];
+  final List<Dispute> _disputes = [];
   List<Dispute> get disputes => _disputes;
 
-  List<UserReview> _reviews = [];
+  final List<UserReview> _reviews = [];
   List<UserReview> get reviews => _reviews;
 
   List<NotificationItem> _notifications = [];
@@ -150,11 +150,13 @@ class KrishiRepository extends ChangeNotifier {
         availableDate: 'তাত্ক্ষণিক',
         harvestDate: 'গতকাল তোলা',
         qualityGrade: QualityGrade.gradeA,
-        description: 'ক্ষেতের টাটকা ও মিষ্টি পাকা টমেটো। চমৎকার লাল রঙ ও উন্নত গ্রেড।',
+        description:
+            'ক্ষেতের টাটকা ও মিষ্টি পাকা টমেটো। চমৎকার লাল রঙ ও উন্নত গ্রেড।',
         imageUrls: [
-          'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80'
+          'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80',
         ],
-        videoUrl: 'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
+        videoUrl:
+            'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
         videoNote: 'ক্ষেতের ভিডিও 🎬',
         status: ProductStatus.active,
         createdAt: '১০ মিনিট আগে',
@@ -175,9 +177,10 @@ class KrishiRepository extends ChangeNotifier {
         availableDate: 'আগামী সপ্তাহ',
         harvestDate: 'গাছপাকা',
         qualityGrade: QualityGrade.gradeA,
-        description: 'রাজশাহীর বিখ্যাত সুস্বাদু হিমসাগর আম। কেমিক্যালমুক্ত গাছপাকা আম।',
+        description:
+            'রাজশাহীর বিখ্যাত সুস্বাদু হিমসাগর আম। কেমিক্যালমুক্ত গাছপাকা আম।',
         imageUrls: [
-          'https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=600&q=80'
+          'https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=600&q=80',
         ],
         status: ProductStatus.active,
         createdAt: '১ ঘন্টা আগে',
@@ -198,9 +201,10 @@ class KrishiRepository extends ChangeNotifier {
         availableDate: 'তাত্ক্ষণিক',
         harvestDate: 'তাজা ডাল কাটা',
         qualityGrade: QualityGrade.gradeA,
-        description: 'সরাসরি গাছ থেকে তাজা কাটা কাঁচা পেঁপে। তরকারি ও রান্নার উপযোগী।',
+        description:
+            'সরাসরি গাছ থেকে তাজা কাটা কাঁচা পেঁপে। তরকারি ও রান্নার উপযোগী।',
         imageUrls: [
-          'https://images.unsplash.com/photo-1617112848923-cc2234396a8d?auto=format&fit=crop&w=600&q=80'
+          'https://images.unsplash.com/photo-1617112848923-cc2234396a8d?auto=format&fit=crop&w=600&q=80',
         ],
         status: ProductStatus.pending,
         createdAt: '৩ ঘন্টা আগে',
@@ -299,7 +303,8 @@ class KrishiRepository extends ChangeNotifier {
         pricePerUnit: 42.0,
         qualityGrade: QualityGrade.gradeA,
         availableDate: '১৮ সেপ্টেম্বর',
-        note: 'আমি ৫০০ কেজি দিতে পারব। গ্রেড এ পাকা টমেটো। প্লাস্টিক ক্রেটে ডেলিভারি।',
+        note:
+            'আমি ৫০০ কেজি দিতে পারব। গ্রেড এ পাকা টমেটো। প্লাস্টিক ক্রেটে ডেলিভারি।',
         status: OfferStatus.accepted,
         createdAt: '১০ মিনিট আগে',
       ),
@@ -493,13 +498,15 @@ class KrishiRepository extends ChangeNotifier {
       NotificationItem(
         id: 'notif_2',
         title: 'অফার গৃহীত হয়েছে! অর্ডার #KB-1011',
-        message: 'কাওরান বাজার পাইকারি আড়ত আপনার অফার গ্রহণ করেছে। ডিপোজিট জমা হলে ফসল তোলার কাজ শুরু করুন।',
+        message:
+            'কাওরান বাজার পাইকারি আড়ত আপনার অফার গ্রহণ করেছে। ডিপোজিট জমা হলে ফসল তোলার কাজ শুরু করুন।',
         timestamp: 'এখনই',
       ),
       NotificationItem(
         id: 'notif_3',
         title: 'আপনার চাহিদায় নতুন অফার এসেছে!',
-        message: 'কৃষক মো: আব্দুল রহিম 1500.0 পিস / সংখ্যা বাঁধাকপি (Cabbage) সরবরাহের অফার দিয়েছেন (৳22.0/পিস / সংখ্যা)।',
+        message:
+            'কৃষক মো: আব্দুল রহিম 1500.0 পিস / সংখ্যা বাঁধাকপি (Cabbage) সরবরাহের অফার দিয়েছেন (৳22.0/পিস / সংখ্যা)।',
         timestamp: 'এখনই',
       ),
       NotificationItem(
@@ -542,7 +549,8 @@ class KrishiRepository extends ChangeNotifier {
         orderId: 'ord_1001',
         senderName: 'আলহাজ্ব শফিকুল ইসলাম',
         senderRole: UserRole.buyer,
-        message: 'ওয়ালাইকুম আসসালাম। ধন্যবাদ হাশেম ভাই, ড্রাইভারের নাম্বার পাইছি।',
+        message:
+            'ওয়ালাইকুম আসসালাম। ধন্যবাদ হাশেম ভাই, ড্রাইভারের নাম্বার পাইছি।',
         timestamp: 'দুপুর ১২:০৫',
       ),
     ];
@@ -760,7 +768,9 @@ class KrishiRepository extends ChangeNotifier {
       harvestDate: harvestDate,
       qualityGrade: qualityGrade,
       description: description,
-      imageUrls: ['https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80'],
+      imageUrls: [
+        'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80',
+      ],
       createdAt: 'এখনই',
     );
     _products.insert(0, newProduct);
@@ -1012,7 +1022,12 @@ class KrishiRepository extends ChangeNotifier {
     }
   }
 
-  void submitWeightVerification(String orderId, double actualWeight, QualityGrade grade, String notes) {
+  void submitWeightVerification(
+    String orderId,
+    double actualWeight,
+    QualityGrade grade,
+    String notes,
+  ) {
     final index = _orders.indexWhere((o) => o.id == orderId);
     if (index != -1) {
       final o = _orders[index];
@@ -1067,8 +1082,12 @@ class KrishiRepository extends ChangeNotifier {
         orderId: o.id,
         orderNumber: o.orderNumber,
         reportedByRole: _currentRole,
-        reporterName: _currentRole == UserRole.buyer ? _currentBuyer.name : _currentFarmer.name,
-        reporterPhone: _currentRole == UserRole.buyer ? _currentBuyer.phone : _currentFarmer.phone,
+        reporterName: _currentRole == UserRole.buyer
+            ? _currentBuyer.name
+            : _currentFarmer.name,
+        reporterPhone: _currentRole == UserRole.buyer
+            ? _currentBuyer.phone
+            : _currentFarmer.phone,
         problemType: type,
         description: description,
         createdAt: 'এখনই',
@@ -1113,7 +1132,9 @@ class KrishiRepository extends ChangeNotifier {
 
   void sendChatMessage(String orderId, String text) {
     if (text.trim().isEmpty) return;
-    final senderName = _currentRole == UserRole.buyer ? _currentBuyer.name : _currentFarmer.name;
+    final senderName = _currentRole == UserRole.buyer
+        ? _currentBuyer.name
+        : _currentFarmer.name;
     final newMsg = ChatMessage(
       id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
       orderId: orderId,
