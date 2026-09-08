@@ -54,18 +54,28 @@ class ProductCard extends StatelessWidget {
                   top: 10,
                   left: 10,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
+                      color: Colors.black.withValues(alpha: 0.7),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       children: [
-                        Text(product.category.icon, style: const TextStyle(fontSize: 12)),
+                        Text(
+                          product.category.icon,
+                          style: const TextStyle(fontSize: 12),
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           product.category.labelBn,
-                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -85,8 +95,13 @@ class ProductCard extends StatelessWidget {
                     bottom: 10,
                     right: 10,
                     child: IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.white),
-                      style: IconButton.styleFrom(backgroundColor: Colors.red.withOpacity(0.8)),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.white,
+                      ),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.red.withValues(alpha: 0.8),
+                      ),
                       onPressed: onDelete,
                     ),
                   ),
@@ -99,7 +114,11 @@ class ProductCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.person, size: 14, color: AppColors.primaryGreen),
+                      const Icon(
+                        Icons.person,
+                        size: 14,
+                        color: AppColors.primaryGreen,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         product.farmerName,
@@ -111,11 +130,18 @@ class ProductCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       if (product.farmerVerified)
-                        const Icon(Icons.verified, size: 14, color: AppColors.primaryGreen),
+                        const Icon(
+                          Icons.verified,
+                          size: 14,
+                          color: AppColors.primaryGreen,
+                        ),
                       const Spacer(),
                       Text(
                         product.farmerDistrict,
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ],
                   ),
@@ -136,7 +162,13 @@ class ProductCard extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('প্রত্যাশিত মূল্য', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                          const Text(
+                            'প্রত্যাশিত মূল্য',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
                           Text(
                             '${AppConst.currencySymbol}${product.expectedPrice.toStringAsFixed(0)} / ${product.unit.labelBn}',
                             style: const TextStyle(
@@ -149,7 +181,10 @@ class ProductCard extends StatelessWidget {
                       ),
                       const Spacer(),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.lightGreen,
                           borderRadius: BorderRadius.circular(8),

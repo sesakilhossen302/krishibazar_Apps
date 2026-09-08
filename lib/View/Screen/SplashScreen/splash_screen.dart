@@ -41,7 +41,7 @@ class _SplashScreenState extends State<SplashScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: const Text('🌾', style: TextStyle(fontSize: 64)),
@@ -58,10 +58,7 @@ class _SplashScreenState extends State<SplashScreen> {
             const SizedBox(height: 8),
             const Text(
               AppConst.appTagline,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.lightGold,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.lightGold),
             ),
             const SizedBox(height: 48),
             const CircularProgressIndicator(color: Colors.white),
