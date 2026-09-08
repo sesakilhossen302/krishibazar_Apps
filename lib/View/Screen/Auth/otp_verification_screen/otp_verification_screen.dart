@@ -29,7 +29,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   void initState() {
     super.initState();
     _controller = OtpVerificationController();
-    _controller.pinController.text = "1234"; // Default demo OTP prefilled
   }
 
   @override
@@ -40,6 +39,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final Map<String, dynamic> signupArgs =
+        (ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?) ??
+            {
+              'role': widget.role,
+              'email': widget.email,
+              'phone': widget.phone,
+            };
+
+    final displayEmail = signupArgs['email'] ?? widget.email;
+
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
@@ -84,7 +93,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${StaticString.otpSubTitle}\n(${widget.email.isNotEmpty ? widget.email : (widget.phone.isNotEmpty ? widget.phone : "demo@krishibazar.bd")})',
+                    'আপনার জিমেইলে পাঠানো ৬-সংখ্যার ওটিপি (OTP) লিখুন\n($displayEmail)',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 14,
@@ -111,13 +120,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          '৪-সংখ্যার ওটিপি (OTP) লিখুন',
+                          '৬-সংখ্যার ওটিপি (OTP) কোড দিন',
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                         const SizedBox(height: 12),
                         CustomTextField(
                           controller: _controller.pinController,
-                          hintText: '১২৩৪',
+                          hintText: 'উদাহরণ: ৪৮২৯১০',
                           keyboardType: TextInputType.number,
                           prefixIcon: Icons.security,
                         ),
@@ -130,14 +139,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         ],
                         const SizedBox(height: 24),
                         CustomButton(
-                          text: _controller.isLoading ? StaticString.loading : StaticString.verifyOtpButton,
+                          text: _controller.isLoading ? 'ভেরিফাই করা হচ্ছে...' : 'ওটিপি ভেরিফাই ও একাউন্ট খুলুন',
                           onTap: _controller.isLoading
                               ? null
-                              : () => _controller.verifyOtp(
+                              : () => _controller.verifyOtpAndSignup(
                                     context: context,
-                                    role: widget.role,
-                                    email: widget.email,
-                                    phone: widget.phone,
+                                    signupArgs: signupArgs,
                                   ),
                         ),
                       ],
@@ -148,10 +155,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   Center(
                     child: TextButton.icon(
                       onPressed: () {
-                        _controller.pinController.text = "1234";
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('নতুন ওটিপি কোড (১২৩৪) পুনরায় পাঠানো হয়েছে!'),
+                            content: Text('নতুন ওটিপি কোড জিমেইলে পুনঃপ্রেরণ করা হয়েছে!'),
                             backgroundColor: AppColors.primaryGreen,
                           ),
                         );
