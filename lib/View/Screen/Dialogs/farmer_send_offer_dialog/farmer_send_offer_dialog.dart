@@ -20,6 +20,7 @@ class _FarmerSendOfferDialogState extends State<FarmerSendOfferDialog> {
 
   double _totalAmount = 0.0;
   double _depositAmount = 0.0;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -342,32 +343,68 @@ class _FarmerSendOfferDialogState extends State<FarmerSendOfferDialog> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            final qty = double.tryParse(_quantityController.text.trim()) ?? demand.requiredQuantity;
-                            final price = double.tryParse(_priceController.text.trim()) ?? demand.minExpectedPrice;
-                            final date = _dateController.text.trim().isNotEmpty
-                                ? _dateController.text.trim()
-                                : 'আগামীকাল সকাল';
-                            final note = _noteController.text.trim();
+                          onPressed: _isSubmitting
+                              ? null
+                              : () async {
+                                  final qty = double.tryParse(_quantityController.text.trim()) ?? 0.0;
+                                  final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
+                                  final date = _dateController.text.trim().isNotEmpty
+                                      ? _dateController.text.trim()
+                                      : 'আগামীকাল সকাল';
+                                  final note = _noteController.text.trim();
 
-                            repo.submitOffer(
-                              demand.id,
-                              qty,
-                              demand.unit,
-                              price,
-                              demand.qualityGrade,
-                              date,
-                              note,
-                            );
-                          },
-                          icon: const Icon(Icons.check_circle_rounded, size: 18),
-                          label: const Text(
-                            'অফার জমা দিন ➔',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                  if (qty <= 0) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('অনুগ্রহ করে সঠিক পরিমাণ লিখুন।'),
+                                        backgroundColor: Colors.redAccent,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  if (price <= 0) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('অনুগ্রহ করে সঠিক প্রস্তাবিত দর লিখুন।'),
+                                        backgroundColor: Colors.redAccent,
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  setState(() => _isSubmitting = true);
+                                  await repo.submitOffer(
+                                    demand.id,
+                                    qty,
+                                    demand.unit,
+                                    price,
+                                    demand.qualityGrade,
+                                    date,
+                                    note,
+                                  );
+                                  if (mounted) {
+                                    setState(() => _isSubmitting = false);
+                                  }
+                                },
+                          icon: _isSubmitting
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.check_circle_rounded, size: 18),
+                          label: Text(
+                            _isSubmitting ? 'অফার পাঠানো হচ্ছে...' : 'অফার জমা দিন ➔',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF166534),
                             foregroundColor: Colors.white,
+                            disabledBackgroundColor: const Color(0xFF166534).withValues(alpha: 0.6),
+                            disabledForegroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(

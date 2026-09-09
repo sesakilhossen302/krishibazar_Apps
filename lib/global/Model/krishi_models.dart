@@ -297,6 +297,8 @@ class FarmerProfile {
       totalEarnings: totalEarnings ?? this.totalEarnings,
     );
   }
+
+  bool get isVerified => verificationStatus == VerificationStatus.verified;
 }
 
 
@@ -480,6 +482,8 @@ class BuyerProfile {
       totalSpent: totalSpent ?? this.totalSpent,
     );
   }
+
+  bool get isVerified => verificationStatus == VerificationStatus.verified;
 }
 
 
@@ -798,6 +802,57 @@ class FarmerOffer {
     this.status = OfferStatus.pending,
     required this.createdAt,
   });
+
+  factory FarmerOffer.fromBackendMap(Map<String, dynamic> json) {
+    // unit mapping
+    final unitStr = (json['unit'] ?? '').toString();
+    ProductUnit u = ProductUnit.kg;
+    if (unitStr.contains('মণ') || unitStr.contains('mon')) {
+      u = ProductUnit.mon;
+    } else if (unitStr.contains('টন') || unitStr.contains('ton')) {
+      u = ProductUnit.ton;
+    }
+
+    // quality grade mapping
+    final gradeStr = (json['quality_grade'] ?? '').toString();
+    QualityGrade qGrade = QualityGrade.gradeA;
+    if (gradeStr.contains('B') || gradeStr.contains('সাধারণ')) {
+      qGrade = QualityGrade.gradeB;
+    } else if (gradeStr.contains('জৈব') || gradeStr.contains('অর্গানিক') || gradeStr.toLowerCase().contains('organic')) {
+      qGrade = QualityGrade.organic;
+    }
+
+    // status mapping
+    final statusStr = (json['status'] ?? 'pending').toString().toLowerCase();
+    OfferStatus st = OfferStatus.pending;
+    if (statusStr.contains('accept') || statusStr.contains('গৃহীত')) {
+      st = OfferStatus.accepted;
+    } else if (statusStr.contains('reject') || statusStr.contains('বাতিল')) {
+      st = OfferStatus.rejected;
+    }
+
+    return FarmerOffer(
+      id: (json['id'] ?? '').toString(),
+      demandId: (json['demand_id'] ?? '').toString(),
+      farmerId: (json['farmer_id'] ?? '').toString(),
+      farmerName: (json['farmer_name'] ?? 'কৃষক').toString(),
+      farmerPhone: (json['farmer_phone'] ?? '').toString(),
+      farmerLocation: (json['farmer_location'] ?? '').toString(),
+      farmerVerified: json['farmer_verified'] == true || json['farmer_verified'] == null,
+      offeredQuantity: (json['offered_quantity'] is num)
+          ? (json['offered_quantity'] as num).toDouble()
+          : (double.tryParse(json['offered_quantity']?.toString() ?? '') ?? 0.0),
+      unit: u,
+      pricePerUnit: (json['price_per_unit'] is num)
+          ? (json['price_per_unit'] as num).toDouble()
+          : (double.tryParse(json['price_per_unit']?.toString() ?? '') ?? 0.0),
+      qualityGrade: qGrade,
+      availableDate: (json['available_date'] ?? '').toString(),
+      note: (json['note'] ?? '').toString(),
+      status: st,
+      createdAt: (json['created_at'] ?? '').toString(),
+    );
+  }
 }
 
 class DeliveryInfo {

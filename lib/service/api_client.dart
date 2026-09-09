@@ -1008,6 +1008,149 @@ class ApiClient {
       };
     }
   }
+
+  // ================= OFFERS (দরপত্র / অফার) =================
+
+  /// Create / submit a new farmer offer
+  static Future<Map<String, dynamic>> createOffer(
+    Map<String, dynamic> body, {
+    String? token,
+    String? farmerId,
+  }) async {
+    Uri uri = Uri.parse(ApiUrl.offers);
+    if (farmerId != null && farmerId.isNotEmpty) {
+      uri = uri.replace(queryParameters: {'farmer_id': farmerId});
+    }
+
+    final headers = <String, String>{
+      "Content-Type": "application/json",
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    debugPrint('🚀 [API REQ] POST Create Offer: $uri');
+    debugPrint('📦 [BODY]: ${jsonEncode(body)}');
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: headers,
+        body: jsonEncode(body),
+      );
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+      debugPrint('📄 [API RES BODY]: ${response.body}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          "success": true,
+          "message": "অফারটি সফলভাবে পাঠানো হয়েছে!",
+          "data": data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "অফার পাঠাতে সমস্যা হয়েছে।"),
+          "data": data,
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - CREATE OFFER]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+      };
+    }
+  }
+
+  /// Fetch offers submitted by the current farmer
+  static Future<Map<String, dynamic>> fetchMyOffers({
+    String? token,
+    String? farmerId,
+  }) async {
+    Uri uri = Uri.parse(ApiUrl.myOffers);
+    if (farmerId != null && farmerId.isNotEmpty) {
+      uri = uri.replace(queryParameters: {'farmer_id': farmerId});
+    }
+
+    final headers = <String, String>{};
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    debugPrint('🚀 [API REQ] GET My Offers: $uri');
+
+    try {
+      final response = await http.get(uri, headers: headers);
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 && data is List) {
+        return {
+          "success": true,
+          "data": data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "আপনার অফারের তালিকা লোড করা যায়নি।"),
+          "data": [],
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - FETCH MY OFFERS]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+        "data": [],
+      };
+    }
+  }
+
+  /// Fetch all offers for a specific demand
+  static Future<Map<String, dynamic>> fetchOffersForDemand(String demandId) async {
+    final uri = Uri.parse(ApiUrl.demandOffers(demandId));
+    debugPrint('🚀 [API REQ] GET Offers For Demand: $uri');
+
+    try {
+      final response = await http.get(uri);
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 && data is List) {
+        return {
+          "success": true,
+          "data": data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "অফারের তালিকা লোড করা যায়নি।"),
+          "data": [],
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - FETCH DEMAND OFFERS]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+        "data": [],
+      };
+    }
+  }
 }
 
 

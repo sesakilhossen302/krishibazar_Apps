@@ -287,6 +287,35 @@ class KrishiRepository extends ChangeNotifier {
     }
   }
 
+  bool isLoadingOffers = false;
+
+  Future<void> fetchMyOffersFromBackend({bool force = false}) async {
+    isLoadingOffers = true;
+    notifyListeners();
+
+    try {
+      final token = await SharedPrefHelper.getToken();
+      final farmerId = _currentFarmer.id;
+      final res = await ApiClient.fetchMyOffers(
+        token: token.isNotEmpty ? token : null,
+        farmerId: farmerId.isNotEmpty ? farmerId : null,
+      );
+      if (res['success'] == true && res['data'] is List) {
+        final List list = res['data'];
+        final List<FarmerOffer> backendOffers = list.map((item) {
+          return FarmerOffer.fromBackendMap(item);
+        }).toList();
+
+        _offers = backendOffers;
+      }
+    } catch (e) {
+      debugPrint('Error fetching offers from backend: $e');
+    } finally {
+      isLoadingOffers = false;
+      notifyListeners();
+    }
+  }
+
   Timer? _periodicSyncTimer;
 
   void startPeriodicSync() {
@@ -297,6 +326,7 @@ class KrishiRepository extends ChangeNotifier {
         loadProfileFromBackend();
         fetchProductsFromBackend();
         fetchDemandsFromBackend();
+        fetchMyOffersFromBackend();
       }
     });
   }
@@ -311,6 +341,7 @@ class KrishiRepository extends ChangeNotifier {
     loadProfileFromBackend();
     fetchProductsFromBackend();
     fetchDemandsFromBackend();
+    fetchMyOffersFromBackend();
     startPeriodicSync();
   }
 
@@ -684,7 +715,7 @@ class KrishiRepository extends ChangeNotifier {
     return res['success'] == true;
   }
 
-  void submitOffer(
+  Future<bool> submitOffer(
     String demandId,
     double qty,
     ProductUnit unit,
@@ -692,26 +723,91 @@ class KrishiRepository extends ChangeNotifier {
     QualityGrade grade,
     String date,
     String note,
-  ) {
-    final newOffer = FarmerOffer(
-      id: 'off_${DateTime.now().millisecondsSinceEpoch}',
-      demandId: demandId,
-      farmerId: _currentFarmer.id,
-      farmerName: _currentFarmer.name,
-      farmerPhone: _currentFarmer.phone,
-      farmerLocation: _currentFarmer.district,
-      offeredQuantity: qty,
-      unit: unit,
-      pricePerUnit: price,
-      qualityGrade: grade,
-      availableDate: date,
-      note: note,
-      createdAt: 'এখনই',
+  ) async {
+    final token = await SharedPrefHelper.getToken();
+    final currentUserId = _currentFarmer.id;
+
+    final body = {
+      "demand_id": demandId,
+      "farmer_id": currentUserId.isNotEmpty ? currentUserId : null,
+      "farmer_name": _currentFarmer.name.isNotEmpty ? _currentFarmer.name : "কৃষক",
+      "farmer_phone": _currentFarmer.phone.isNotEmpty ? _currentFarmer.phone : "০১৭০০০০০০০০",
+      "farmer_location": _currentFarmer.district.isNotEmpty ? _currentFarmer.district : "বাংলাদেশ",
+      "farmer_verified": _currentFarmer.isVerified,
+      "offered_quantity": qty,
+      "unit": unit.labelBn,
+      "price_per_unit": price,
+      "quality_grade": grade.labelBn,
+      "available_date": date,
+      "note": note.trim(),
+    };
+
+    final res = await ApiClient.createOffer(
+      body,
+      token: token.isNotEmpty ? token : null,
+      farmerId: currentUserId.isNotEmpty ? currentUserId : null,
     );
+
+    FarmerOffer newOffer;
+    if (res['success'] == true && res['data'] is Map<String, dynamic>) {
+      newOffer = FarmerOffer.fromBackendMap(res['data']);
+    } else {
+      newOffer = FarmerOffer(
+        id: 'off_${DateTime.now().millisecondsSinceEpoch}',
+        demandId: demandId,
+        farmerId: _currentFarmer.id,
+        farmerName: _currentFarmer.name,
+        farmerPhone: _currentFarmer.phone,
+        farmerLocation: _currentFarmer.district,
+        farmerVerified: _currentFarmer.isVerified,
+        offeredQuantity: qty,
+        unit: unit,
+        pricePerUnit: price,
+        qualityGrade: grade,
+        availableDate: date,
+        note: note,
+        createdAt: 'এখনই',
+      );
+    }
+
+    _offers.removeWhere((o) => o.id == newOffer.id);
     _offers.insert(0, newOffer);
+
+    // Update local demand offersCount if present
+    final dIdx = _demands.indexWhere((d) => d.id == demandId);
+    if (dIdx != -1) {
+      final oldD = _demands[dIdx];
+      _demands[dIdx] = BuyerDemand(
+        id: oldD.id,
+        buyerId: oldD.buyerId,
+        buyerName: oldD.buyerName,
+        buyerBusinessName: oldD.buyerBusinessName,
+        buyerDistrict: oldD.buyerDistrict,
+        buyerVerified: oldD.buyerVerified,
+        buyerPhotoUrl: oldD.buyerPhotoUrl,
+        buyerPhone: oldD.buyerPhone,
+        productTitle: oldD.productTitle,
+        category: oldD.category,
+        requiredQuantity: oldD.requiredQuantity,
+        fulfilledQuantity: oldD.fulfilledQuantity,
+        unit: oldD.unit,
+        requiredLocation: oldD.requiredLocation,
+        requiredDate: oldD.requiredDate,
+        minExpectedPrice: oldD.minExpectedPrice,
+        maxExpectedPrice: oldD.maxExpectedPrice,
+        qualityGrade: oldD.qualityGrade,
+        additionalNote: oldD.additionalNote,
+        status: oldD.status,
+        offersCount: oldD.offersCount + 1,
+        createdAt: oldD.createdAt,
+      );
+    }
+
     closeOfferDialog();
-    snackbarMessage = StaticString.offerSentSuccess;
+    snackbarMessage = res['message'] ?? StaticString.offerSentSuccess;
     notifyListeners();
+    fetchDemandsFromBackend();
+    return res['success'] == true;
   }
 
   void acceptOffer(String offerId) {
