@@ -14,7 +14,6 @@ class FarmerHomeScreen extends StatelessWidget {
     final repo = context.watch<KrishiRepository>();
     final controller = FarmerHomeController(repo);
     final farmer = controller.farmer;
-    final myProducts = controller.myProducts;
     final myOrders = controller.myOrders;
     final demands = controller.demands;
 
@@ -165,12 +164,14 @@ class FarmerHomeScreen extends StatelessWidget {
                       ),
                     ),
                     Row(
-                      children: const [
-                        Icon(Icons.star, color: Colors.amber, size: 18),
-                        SizedBox(width: 4),
+                      children: [
+                        const Icon(Icons.star, color: Colors.amber, size: 18),
+                        const SizedBox(width: 4),
                         Text(
-                          '4.9 (৪২ রিভিউ)',
-                          style: TextStyle(
+                          farmer.rating > 0
+                              ? '${_toBnDigits(farmer.rating.toStringAsFixed(1))} (${_toBnDigits(farmer.reviewsCount.toString())} রিভিউ)'
+                              : '০.০ (০ রিভিউ)',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
@@ -259,7 +260,7 @@ class FarmerHomeScreen extends StatelessWidget {
                   Expanded(
                     child: _buildDashboardCard(
                       title: 'আমার পণ্য',
-                      count: '${myProducts.length} টি',
+                      count: '${_toBnDigits(farmer.productsCount.toString())} টি',
                       icon: Icons.inventory_2_outlined,
                       iconBgColor: const Color(0xFFDCFCE7),
                       iconColor: const Color(0xFF166534),
@@ -269,12 +270,12 @@ class FarmerHomeScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _buildDashboardCard(
-                      title: 'অফারসমূহ',
-                      count: '৩ টি',
-                      icon: Icons.local_offer_outlined,
-                      iconBgColor: const Color(0xFFFFEDD5),
-                      iconColor: const Color(0xFFEA580C),
-                      textColor: const Color(0xFFEA580C),
+                      title: 'সম্পন্ন অর্ডার',
+                      count: '${_toBnDigits(farmer.completedOrders.toString())} টি',
+                      icon: Icons.check_circle_outline_rounded,
+                      iconBgColor: const Color(0xFFDCFCE7),
+                      iconColor: const Color(0xFF166534),
+                      textColor: const Color(0xFF166534),
                     ),
                   ),
                 ],
@@ -285,7 +286,7 @@ class FarmerHomeScreen extends StatelessWidget {
                   Expanded(
                     child: _buildDashboardCard(
                       title: 'চলমান অর্ডার',
-                      count: '০ টি',
+                      count: '${_toBnDigits(farmer.activeOrdersCount.toString())} টি',
                       icon: Icons.local_shipping_outlined,
                       iconBgColor: const Color(0xFFDBEAFE),
                       iconColor: const Color(0xFF2563EB),
@@ -296,7 +297,7 @@ class FarmerHomeScreen extends StatelessWidget {
                   Expanded(
                     child: _buildDashboardCard(
                       title: 'মোট আয়',
-                      count: '৳৪০০০০',
+                      count: '৳${_toBnDigits(farmer.totalEarnings.toInt().toString())}',
                       icon: Icons.account_balance_wallet_outlined,
                       iconBgColor: const Color(0xFFF3E8FF),
                       iconColor: const Color(0xFF7E22CE),
@@ -307,6 +308,7 @@ class FarmerHomeScreen extends StatelessWidget {
               ),
             ],
           ),
+
           const SizedBox(height: 24),
 
           // 4. Buyer Demands Section ("ঢাকার পাইকারি ক্রেতাদের চাহিদা 📢")
@@ -687,5 +689,17 @@ class FarmerHomeScreen extends StatelessWidget {
       ),
     );
   }
+
+  static String _toBnDigits(dynamic input) {
+
+    const en = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    const bn = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    var s = input.toString();
+    for (int i = 0; i < 10; i++) {
+      s = s.replaceAll(en[i], bn[i]);
+    }
+    return s;
+  }
 }
+
 

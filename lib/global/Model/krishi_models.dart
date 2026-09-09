@@ -148,8 +148,13 @@ class FarmerProfile {
   final String nidStatus;
   final String nidRejectionNote;
   final int totalCompletedOrders;
+  int get completedOrders => totalCompletedOrders;
   final double rating;
   final int reviewsCount;
+  final int productsCount;
+  final int offersCount;
+  final int activeOrdersCount;
+  final double totalEarnings;
 
   FarmerProfile({
     required this.id,
@@ -173,6 +178,10 @@ class FarmerProfile {
     this.totalCompletedOrders = 0,
     this.rating = 0.0,
     this.reviewsCount = 0,
+    this.productsCount = 0,
+    this.offersCount = 0,
+    this.activeOrdersCount = 0,
+    this.totalEarnings = 0.0,
   });
 
   factory FarmerProfile.fromBackendMap(Map<String, dynamic> json) {
@@ -218,6 +227,18 @@ class FarmerProfile {
       reviewsCount: (json['reviews_count'] is num)
           ? (json['reviews_count'] as num).toInt()
           : 0,
+      productsCount: (json['products_count'] is num)
+          ? (json['products_count'] as num).toInt()
+          : ((json['total_products'] is num) ? (json['total_products'] as num).toInt() : 0),
+      offersCount: (json['offers_count'] is num)
+          ? (json['offers_count'] as num).toInt()
+          : ((json['submitted_offers'] is num) ? (json['submitted_offers'] as num).toInt() : 0),
+      activeOrdersCount: (json['active_orders_count'] is num)
+          ? (json['active_orders_count'] as num).toInt()
+          : ((json['active_orders'] is num) ? (json['active_orders'] as num).toInt() : 0),
+      totalEarnings: (json['total_earnings'] is num)
+          ? (json['total_earnings'] as num).toDouble()
+          : 0.0,
     );
   }
 
@@ -243,6 +264,10 @@ class FarmerProfile {
     int? totalCompletedOrders,
     double? rating,
     int? reviewsCount,
+    int? productsCount,
+    int? offersCount,
+    int? activeOrdersCount,
+    double? totalEarnings,
   }) {
     return FarmerProfile(
       id: id ?? this.id,
@@ -266,9 +291,14 @@ class FarmerProfile {
       totalCompletedOrders: totalCompletedOrders ?? this.totalCompletedOrders,
       rating: rating ?? this.rating,
       reviewsCount: reviewsCount ?? this.reviewsCount,
+      productsCount: productsCount ?? this.productsCount,
+      offersCount: offersCount ?? this.offersCount,
+      activeOrdersCount: activeOrdersCount ?? this.activeOrdersCount,
+      totalEarnings: totalEarnings ?? this.totalEarnings,
     );
   }
 }
+
 
 class BuyerProfile {
   final String id;
@@ -294,6 +324,10 @@ class BuyerProfile {
   final double rating;
   final int reviewsCount;
   final int paymentReliability;
+  final int productsCount;
+  final int offersCount;
+  final int activeOrdersCount;
+  final double totalSpent;
 
   BuyerProfile({
     required this.id,
@@ -319,6 +353,10 @@ class BuyerProfile {
     this.rating = 0.0,
     this.reviewsCount = 0,
     this.paymentReliability = 100,
+    this.productsCount = 0,
+    this.offersCount = 0,
+    this.activeOrdersCount = 0,
+    this.totalSpent = 0.0,
   });
 
   factory BuyerProfile.fromBackendMap(Map<String, dynamic> json) {
@@ -368,6 +406,18 @@ class BuyerProfile {
       paymentReliability: (json['payment_reliability'] is num)
           ? (json['payment_reliability'] as num).toInt()
           : 100,
+      productsCount: (json['products_count'] is num)
+          ? (json['products_count'] as num).toInt()
+          : ((json['total_demands'] is num) ? (json['total_demands'] as num).toInt() : 0),
+      offersCount: (json['offers_count'] is num)
+          ? (json['offers_count'] as num).toInt()
+          : 0,
+      activeOrdersCount: (json['active_orders_count'] is num)
+          ? (json['active_orders_count'] as num).toInt()
+          : ((json['active_orders'] is num) ? (json['active_orders'] as num).toInt() : 0),
+      totalSpent: (json['total_spent'] is num)
+          ? (json['total_spent'] as num).toDouble()
+          : 0.0,
     );
   }
 
@@ -395,6 +445,10 @@ class BuyerProfile {
     double? rating,
     int? reviewsCount,
     int? paymentReliability,
+    int? productsCount,
+    int? offersCount,
+    int? activeOrdersCount,
+    double? totalSpent,
   }) {
     return BuyerProfile(
       id: id ?? this.id,
@@ -420,9 +474,14 @@ class BuyerProfile {
       rating: rating ?? this.rating,
       reviewsCount: reviewsCount ?? this.reviewsCount,
       paymentReliability: paymentReliability ?? this.paymentReliability,
+      productsCount: productsCount ?? this.productsCount,
+      offersCount: offersCount ?? this.offersCount,
+      activeOrdersCount: activeOrdersCount ?? this.activeOrdersCount,
+      totalSpent: totalSpent ?? this.totalSpent,
     );
   }
 }
+
 
 class ProductListing {
   final String id;
