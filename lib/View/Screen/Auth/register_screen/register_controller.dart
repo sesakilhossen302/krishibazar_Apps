@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../Core/AppRoute/app_route.dart';
 import '../../../../global/Model/krishi_models.dart';
 import '../../../../service/api_client.dart';
+import '../../../../service/location_service.dart';
 import '../../../Widgegt/image_picker_dialog/image_picker_dialog.dart';
 import 'register_model.dart';
 
@@ -23,6 +24,15 @@ class RegisterController extends ChangeNotifier {
   final TextEditingController farmerTypeController = TextEditingController();
   final TextEditingController farmerLocationController = TextEditingController();
 
+  // Structured Location Controllers (Populated automatically via GPS/Google Maps or manual input)
+  final TextEditingController districtController = TextEditingController();
+  final TextEditingController upazilaController = TextEditingController();
+  final TextEditingController unionController = TextEditingController();
+  final TextEditingController addressController = TextEditingController();
+
+  bool isDetectingLocation = false;
+  DetectedLocation? detectedLocation;
+
   File? nidFrontFile;
   String? nidFrontImageName;
   bool isUploadingNidFront = false;
@@ -40,6 +50,51 @@ class RegisterController extends ChangeNotifier {
 
   void init(UserRole role) {
     formData = RegistrationFormData(role: role);
+  }
+
+  /// Automatically fetch user's GPS/Google Maps location and fill district, upazila, union & address
+  Future<void> autoDetectLocation(BuildContext context) async {
+    isDetectingLocation = true;
+    notifyListeners();
+
+    try {
+      final loc = await LocationService.getCurrentLocation();
+      detectedLocation = loc;
+
+      if (loc.district.isNotEmpty) districtController.text = loc.district;
+      if (loc.upazila.isNotEmpty) upazilaController.text = loc.upazila;
+      if (loc.unionOrArea.isNotEmpty) unionController.text = loc.unionOrArea;
+      if (loc.fullAddress.isNotEmpty) addressController.text = loc.fullAddress;
+
+      // Update legacy fields as well
+      if (farmerLocationController.text.trim().isEmpty) {
+        final parts = <String>[];
+        if (loc.upazila.isNotEmpty) parts.add(loc.upazila);
+        if (loc.district.isNotEmpty) parts.add(loc.district);
+        farmerLocationController.text = parts.join(', ');
+      }
+      if (shopLocationController.text.trim().isEmpty) {
+        final parts = <String>[];
+        if (loc.unionOrArea.isNotEmpty) parts.add(loc.unionOrArea);
+        if (loc.district.isNotEmpty) parts.add(loc.district);
+        shopLocationController.text = parts.join(', ');
+      }
+
+      if (context.mounted) {
+        _showSnackBar(
+          context,
+          "✓ লোকেশন সনাক্ত হয়েছে: ${loc.district.isNotEmpty ? loc.district : ''} ${loc.upazila.isNotEmpty ? '• ${loc.upazila}' : ''}",
+          isError: false,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        _showSnackBar(context, e.toString(), isError: true);
+      }
+    } finally {
+      isDetectingLocation = false;
+      notifyListeners();
+    }
   }
 
   void _showSnackBar(BuildContext context, String message, {bool isError = true}) {
@@ -144,6 +199,14 @@ class RegisterController extends ChangeNotifier {
             'arotLocation': shopLocationController.text.trim(),
             'farmerType': farmerTypeController.text.trim(),
             'farmerLocation': farmerLocationController.text.trim(),
+            'district': districtController.text.trim(),
+            'upazila': upazilaController.text.trim().isNotEmpty
+                ? upazilaController.text.trim()
+                : (formData.role == UserRole.farmer ? farmerLocationController.text.trim() : ''),
+            'union': unionController.text.trim(),
+            'address': addressController.text.trim().isNotEmpty
+                ? addressController.text.trim()
+                : (formData.role == UserRole.buyer ? shopLocationController.text.trim() : farmerLocationController.text.trim()),
           },
         );
       }
@@ -165,6 +228,10 @@ class RegisterController extends ChangeNotifier {
     shopLocationController.dispose();
     farmerTypeController.dispose();
     farmerLocationController.dispose();
+    districtController.dispose();
+    upazilaController.dispose();
+    unionController.dispose();
+    addressController.dispose();
     super.dispose();
   }
 }

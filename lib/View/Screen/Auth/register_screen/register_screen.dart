@@ -4,6 +4,7 @@ import '../../../../Utils/StaticString/static_string.dart';
 import '../../../../global/Model/krishi_models.dart';
 import '../../../Widgegt/custom_button/custom_button.dart';
 import '../../../Widgegt/custom_text_field/custom_text_field.dart';
+import '../../../Widgegt/location_picker_card.dart';
 import 'register_controller.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -155,6 +156,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 24),
 
+                  // Location Section (GPS & Google Maps Auto Detection)
+                  const Text(
+                    'ঠিকানা ও অবস্থান (Google Maps / GPS)',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textDark),
+                  ),
+                  const SizedBox(height: 10),
+                  LocationPickerCard(
+                    isLoading: _controller.isDetectingLocation,
+                    detectedLocation: _controller.detectedLocation,
+                    onDetectLocation: () => _controller.autoDetectLocation(context),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CustomTextField(
+                          controller: _controller.districtController,
+                          hintText: 'জেলা (যেমন: ঢাকা, রাজশাহী)',
+                          prefixIcon: Icons.location_city_rounded,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: CustomTextField(
+                          controller: _controller.upazilaController,
+                          hintText: 'উপজেলা/থানা (যেমন: গুলশান)',
+                          prefixIcon: Icons.map_outlined,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CustomTextField(
+                          controller: _controller.unionController,
+                          hintText: 'ইউনিয়ন/গ্রাম/এলাকা',
+                          prefixIcon: Icons.holiday_village_outlined,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: CustomTextField(
+                          controller: _controller.addressController,
+                          hintText: 'বিস্তারিত ঠিকানা (বাড়ি/রোড)',
+                          prefixIcon: Icons.home_work_outlined,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
                   // Role-Specific Sections
                   if (isBuyer) ...[
                     // Buyer / Shopkeeper Section
@@ -176,13 +230,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hintText: StaticString.businessLicenseNoHint,
                       prefixIcon: Icons.badge_outlined,
                     ),
-                    const SizedBox(height: 12),
-
-                    CustomTextField(
-                      controller: _controller.shopLocationController,
-                      hintText: StaticString.shopLocationHint,
-                      prefixIcon: Icons.location_on_outlined,
-                    ),
                     const SizedBox(height: 16),
 
                     // Trade License Photo Upload (Mandatory for Buyer)
@@ -200,7 +247,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ] else ...[
                     // Farmer / Seller Section
                     const Text(
-                      'কৃষি তথ্য ও এলাকা (কৃষক)',
+                      'কৃষি তথ্য (কৃষক)',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textDark),
                     ),
                     const SizedBox(height: 12),
@@ -209,13 +256,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       controller: _controller.farmerTypeController,
                       hintText: StaticString.farmerTypeHint,
                       prefixIcon: Icons.grass_rounded,
-                    ),
-                    const SizedBox(height: 12),
-
-                    CustomTextField(
-                      controller: _controller.farmerLocationController,
-                      hintText: StaticString.farmerLocationHint,
-                      prefixIcon: Icons.my_location_rounded,
                     ),
                   ],
 

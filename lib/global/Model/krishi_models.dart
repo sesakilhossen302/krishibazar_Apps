@@ -159,13 +159,13 @@ class FarmerProfile {
     required this.address,
     required this.farmerType,
     this.verificationStatus = VerificationStatus.verified,
-    this.nidOrDoc = 'NID-7829102938',
+    this.nidOrDoc = '',
     this.nidFrontUrl = '',
     this.nidBackUrl = '',
     this.krishiCardDocUrl = '',
-    this.totalCompletedOrders = 12,
-    this.rating = 4.8,
-    this.reviewsCount = 18,
+    this.totalCompletedOrders = 0,
+    this.rating = 0.0,
+    this.reviewsCount = 0,
   });
 
   factory FarmerProfile.fromBackendMap(Map<String, dynamic> json) {
@@ -183,7 +183,7 @@ class FarmerProfile {
       phone: json['phone']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       photoUrl: json['photo_url']?.toString() ?? '',
-      district: json['district']?.toString() ?? 'রাজশাহী',
+      district: json['district']?.toString() ?? '',
       upazila: json['upazila']?.toString() ?? '',
       union: json['union']?.toString() ?? '',
       address: json['address']?.toString() ?? '',
@@ -198,7 +198,7 @@ class FarmerProfile {
           : 0,
       rating: (json['rating'] is num)
           ? (json['rating'] as num).toDouble()
-          : 5.0,
+          : 0.0,
       reviewsCount: (json['reviews_count'] is num)
           ? (json['reviews_count'] as num).toInt()
           : 0,
@@ -238,15 +238,15 @@ class BuyerProfile {
     required this.district,
     required this.area,
     required this.address,
-    this.tradeInfo = 'TR-DH-892182',
+    this.tradeInfo = '',
     this.tradeLicenseUrl = '',
     this.nidFrontUrl = '',
     this.nidBackUrl = '',
     this.verificationStatus = VerificationStatus.verified,
-    this.completedOrders = 24,
-    this.rating = 4.9,
-    this.reviewsCount = 30,
-    this.paymentReliability = 98,
+    this.completedOrders = 0,
+    this.rating = 0.0,
+    this.reviewsCount = 0,
+    this.paymentReliability = 100,
   });
 
   factory BuyerProfile.fromBackendMap(Map<String, dynamic> json) {
@@ -266,7 +266,7 @@ class BuyerProfile {
       photoUrl: json['photo_url']?.toString() ?? '',
       businessName: json['business_name']?.toString() ?? '',
       businessType: json['business_type']?.toString() ?? '',
-      district: json['district']?.toString() ?? 'ঢাকা',
+      district: json['district']?.toString() ?? '',
       area: json['arot_location']?.toString() ?? '',
       address: json['address']?.toString() ?? '',
       tradeInfo: json['trade_info']?.toString() ?? '',
@@ -279,7 +279,7 @@ class BuyerProfile {
           : 0,
       rating: (json['rating'] is num)
           ? (json['rating'] as num).toDouble()
-          : 5.0,
+          : 0.0,
       reviewsCount: (json['reviews_count'] is num)
           ? (json['reviews_count'] as num).toInt()
           : 0,

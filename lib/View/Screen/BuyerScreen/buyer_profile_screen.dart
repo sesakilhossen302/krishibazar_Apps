@@ -230,7 +230,7 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildProfileStat('রেটিং', '⭐ ${buyer.rating}'),
+                          _buildProfileStat('রেটিং', buyer.rating > 0 ? '⭐ ${buyer.rating}' : 'নতুন'),
                           _buildProfileStat(
                             'ক্রয় অর্ডার',
                             '${buyer.completedOrders}টি',
@@ -275,7 +275,9 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
                       _buildInfoRow(
                         Icons.store,
                         'আড়ত/ব্যবসার স্থান',
-                        '${buyer.district.isNotEmpty ? buyer.district : "ঢাকা"}${buyer.area.isNotEmpty ? ", ${buyer.area}" : ""}',
+                        (buyer.district.isNotEmpty || buyer.area.isNotEmpty)
+                            ? [buyer.area, buyer.district].where((s) => s.isNotEmpty).join(', ')
+                            : 'তথ্য দেওয়া হয়নি',
                       ),
                       if (buyer.address.isNotEmpty)
                         _buildInfoRow(

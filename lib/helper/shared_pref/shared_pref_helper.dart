@@ -65,6 +65,19 @@ class SharedPrefHelper {
     if (verificationStatus != null && verificationStatus.isNotEmpty) await prefs.setString(keyVerificationStatus, verificationStatus);
   }
 
+  static Future<void> updateUserLocation({
+    String? district,
+    String? upazila,
+    String? union,
+    String? address,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (district != null) await prefs.setString(keyDistrict, district);
+    if (upazila != null) await prefs.setString(keyUpazila, upazila);
+    if (union != null) await prefs.setString(keyUnion, union);
+    if (address != null) await prefs.setString(keyAddress, address);
+  }
+
   static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(keyIsLoggedIn) ?? false;

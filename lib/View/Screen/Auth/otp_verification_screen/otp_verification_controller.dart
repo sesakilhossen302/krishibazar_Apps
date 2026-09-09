@@ -65,6 +65,10 @@ class OtpVerificationController extends ChangeNotifier {
     }
 
     final UserRole role = signupArgs['role'] ?? UserRole.farmer;
+    final String district = (signupArgs['district'] ?? '').toString().trim();
+    final String upazila = (signupArgs['upazila'] ?? signupArgs['farmerLocation'] ?? '').toString().trim();
+    final String union = (signupArgs['union'] ?? '').toString().trim();
+    final String address = (signupArgs['address'] ?? signupArgs['arotLocation'] ?? signupArgs['farmerLocation'] ?? '').toString().trim();
 
     final payload = {
       "role": role == UserRole.buyer ? "buyer" : "farmer",
@@ -80,7 +84,10 @@ class OtpVerificationController extends ChangeNotifier {
       "business_type": signupArgs['businessType'] ?? "",
       "arot_location": signupArgs['arotLocation'] ?? "",
       "farmer_type": signupArgs['farmerType'] ?? "",
-      "upazila": signupArgs['farmerLocation'] ?? "",
+      "district": district,
+      "upazila": upazila,
+      "union": union,
+      "address": address,
     };
 
     final res = await ApiClient.signup(payload);
@@ -105,10 +112,10 @@ class OtpVerificationController extends ChangeNotifier {
         nidBack: nidBackUrl,
         tradeLicense: tradeLicenseUrl,
         shopName: signupArgs['businessName'],
-        shopLocation: signupArgs['arotLocation'],
+        shopLocation: address.isNotEmpty ? address : signupArgs['arotLocation'],
         farmerType: signupArgs['farmerType'],
-        district: signupArgs['district'] ?? "রাজশাহী",
-        upazila: signupArgs['farmerLocation'] ?? signupArgs['upazila'],
+        district: district,
+        upazila: upazila,
         verificationStatus: "verified",
       );
 

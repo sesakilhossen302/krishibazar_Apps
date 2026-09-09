@@ -20,7 +20,11 @@ class AddProductController extends ChangeNotifier {
   bool isLiveVideoEnabled = false;
 
   AddProductController(this.repository) {
-    locationController.text = 'গোদাগাড়ী, রাজশাহী';
+    locationController.text = repository.currentFarmer.address.isNotEmpty
+        ? repository.currentFarmer.address
+        : (repository.currentFarmer.district.isNotEmpty
+            ? '${repository.currentFarmer.upazila}, ${repository.currentFarmer.district}'
+            : '');
     harvestDateController.text = '১০ সেপ্টেম্বর ২০২৪';
     deliveryDateController.text = '১৫ সেপ্টেম্বর ২০২৪';
   }
@@ -53,7 +57,9 @@ class AddProductController extends ChangeNotifier {
       unit: unit,
       expectedPrice: double.tryParse(expectedPriceController.text) ?? 40.0,
       minPrice: double.tryParse(minPriceController.text) ?? 35.0,
-      location: locationController.text.isEmpty ? 'গোদাগাড়ী, রাজশাহী' : locationController.text,
+      location: locationController.text.isNotEmpty
+          ? locationController.text
+          : (repository.currentFarmer.district.isNotEmpty ? repository.currentFarmer.district : 'বাংলাদেশ'),
       availableDate: deliveryDateController.text.isNotEmpty ? deliveryDateController.text : '১৫ সেপ্টেম্বর ২০২৪',
       harvestDate: harvestDateController.text.isNotEmpty ? harvestDateController.text : '১০ সেপ্টেম্বর ২০২৪',
       qualityGrade: qualityGrade,

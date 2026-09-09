@@ -300,4 +300,58 @@ class ApiClient {
       };
     }
   }
+
+  /// Update User Profile Data via PATCH /users/profile
+  static Future<Map<String, dynamic>> updateUserProfile({
+    required String token,
+    required Map<String, dynamic> updateData,
+  }) async {
+    final uri = Uri.parse(ApiUrl.profile);
+    final headers = {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer $token",
+    };
+
+    debugPrint('==================================================');
+    debugPrint('🚀 [API REQ] PATCH User Profile: $uri');
+    debugPrint('📦 [BODY]: ${jsonEncode(updateData)}');
+
+    try {
+      final response = await http.patch(
+        uri,
+        headers: headers,
+        body: jsonEncode(updateData),
+      );
+
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+      debugPrint('📄 [API RES BODY]: ${response.body}');
+      debugPrint('==================================================');
+
+      dynamic data;
+      try { data = jsonDecode(response.body); } catch (_) {}
+
+      if (response.statusCode == 200 && data is Map<String, dynamic>) {
+        return {
+          "success": true,
+          "data": data,
+          "message": "প্রোফাইল তথ্য সফলভাবে আপডেট করা হয়েছে!",
+        };
+      } else {
+        final msg = _extractErrorMessage(data, "প্রোফাইল আপডেট করতে ব্যর্থ হয়েছে।");
+        return {
+          "success": false,
+          "message": msg,
+        };
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ [API ERROR - UPDATE PROFILE]: $e');
+      debugPrint('📜 [STACK TRACE]: $stackTrace');
+      debugPrint('==================================================');
+      return {
+        "success": false,
+        "message": "সার্ভারে সংযোগ দেওয়া যায়নি। ইন্টারনেট সংযোগ চেক করুন।"
+      };
+    }
+  }
 }
+

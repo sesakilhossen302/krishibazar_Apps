@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../global/Model/krishi_models.dart';
 import '../../../../global/controller/krishi_repository.dart';
+import '../../../../service/api_client.dart';
 import '../../../../service/api_url.dart';
+import '../../../../service/location_service.dart';
+import '../../../../helper/shared_pref/shared_pref_helper.dart';
+import '../../../Widgegt/custom_text_field/custom_text_field.dart';
+import '../../../Widgegt/location_picker_card.dart';
 import 'farmer_profile_controller.dart';
 
 class FarmerProfileScreen extends StatefulWidget {
@@ -346,47 +351,65 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.location_on_outlined, color: Color(0xFF166534), size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'খামারের তথ্য ও ঠিকানা',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
+                        const Row(
+                          children: [
+                            Icon(Icons.location_on_outlined, color: Color(0xFF166534), size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'খামারের তথ্য ও ঠিকানা',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                          ],
+                        ),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
+                          icon: const Icon(Icons.edit_location_alt_outlined, size: 16, color: Color(0xFF166534)),
+                          label: const Text(
+                            'ঠিকানা পরিবর্তন',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
+                          ),
+                          onPressed: () => _showLocationUpdateDialog(context, farmer),
                         ),
                       ],
                     ),
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                      padding: EdgeInsets.symmetric(vertical: 10),
                       child: Divider(height: 1, color: Color(0xFFF1F5F9)),
                     ),
 
-                    _buildInfoRow('জেলা:', farmer.district.isNotEmpty ? farmer.district : 'রাজশাহী'),
+                    _buildInfoRow('জেলা:', farmer.district.isNotEmpty ? farmer.district : 'তথ্য দেওয়া হয়নি'),
                     const SizedBox(height: 10),
-                    _buildInfoRow('উপজেলা / অবস্থান:', farmer.upazila.isNotEmpty ? farmer.upazila : 'গোদাগাড়ী'),
+                    _buildInfoRow('উপজেলা / অবস্থান:', farmer.upazila.isNotEmpty ? farmer.upazila : 'তথ্য দেওয়া হয়নি'),
                     const SizedBox(height: 10),
-                    _buildInfoRow('ইউনিয়ন / গ্রাম:', farmer.union.isNotEmpty ? farmer.union : 'সদর ইউনিয়ন'),
+                    _buildInfoRow('ইউনিয়ন / গ্রাম:', farmer.union.isNotEmpty ? farmer.union : 'তথ্য দেওয়া হয়নি'),
                     const SizedBox(height: 10),
-                    _buildInfoRow('কৃষকের ধরন / ফসল:', farmer.farmerType.isNotEmpty ? farmer.farmerType : 'বাণিজ্যিক খামারি'),
-                    if (farmer.address.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      _buildInfoRow('বিস্তারিত ঠিকানা:', farmer.address),
-                    ],
+                    _buildInfoRow('কৃষকের ধরন / ফসল:', farmer.farmerType.isNotEmpty ? farmer.farmerType : 'তথ্য দেওয়া হয়নি'),
+                    const SizedBox(height: 10),
+                    _buildInfoRow('বিস্তারিত ঠিকানা:', farmer.address.isNotEmpty ? farmer.address : 'তথ্য দেওয়া হয়নি'),
                     const SizedBox(height: 10),
                     _buildInfoRow(
                       'সম্পন্ন অর্ডার:',
-                      '${_toBnDigits(farmer.totalCompletedOrders > 0 ? farmer.totalCompletedOrders : 12)} টি',
+                      '${_toBnDigits(farmer.totalCompletedOrders)} টি',
                       isBold: true,
                       color: const Color(0xFF166534),
                     ),
                     const SizedBox(height: 10),
                     _buildInfoRow(
                       'রেটিং ও সুনাম:',
-                      '⭐ ${farmer.rating} (${_toBnDigits(farmer.reviewsCount > 0 ? farmer.reviewsCount : 18)} রিভিউ)',
+                      farmer.reviewsCount > 0
+                          ? '⭐ ${_toBnDigits(farmer.rating.toStringAsFixed(1))} (${_toBnDigits(farmer.reviewsCount)} রিভিউ)'
+                          : '⭐ নতুন সদস্য (০ রিভিউ)',
                       isBold: true,
                     ),
                   ],
@@ -640,6 +663,175 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showLocationUpdateDialog(BuildContext context, FarmerProfile farmer) {
+    final distCtrl = TextEditingController(text: farmer.district);
+    final upazilaCtrl = TextEditingController(text: farmer.upazila);
+    final unionCtrl = TextEditingController(text: farmer.union);
+    final addressCtrl = TextEditingController(text: farmer.address);
+    bool isDetecting = false;
+    bool isSaving = false;
+    DetectedLocation? detected;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'ঠিকানা ও অবস্থান আপডেট',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const Divider(height: 12),
+                LocationPickerCard(
+                  isLoading: isDetecting,
+                  detectedLocation: detected,
+                  onDetectLocation: () async {
+                    setModalState(() => isDetecting = true);
+                    try {
+                      final loc = await LocationService.getCurrentLocation();
+                      setModalState(() {
+                        detected = loc;
+                        if (loc.district.isNotEmpty) distCtrl.text = loc.district;
+                        if (loc.upazila.isNotEmpty) upazilaCtrl.text = loc.upazila;
+                        if (loc.unionOrArea.isNotEmpty) unionCtrl.text = loc.unionOrArea;
+                        if (loc.fullAddress.isNotEmpty) addressCtrl.text = loc.fullAddress;
+                      });
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("✓ লোকেশন সনাক্ত হয়েছে: ${loc.district} ${loc.upazila}"),
+                            backgroundColor: Colors.green.shade700,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red.shade700),
+                        );
+                      }
+                    } finally {
+                      setModalState(() => isDetecting = false);
+                    }
+                  },
+                ),
+                const SizedBox(height: 14),
+                CustomTextField(
+                  controller: distCtrl,
+                  hintText: 'জেলা (যেমন: ঢাকা, রাজশাহী)',
+                  prefixIcon: Icons.location_city_rounded,
+                ),
+                const SizedBox(height: 10),
+                CustomTextField(
+                  controller: upazilaCtrl,
+                  hintText: 'উপজেলা/থানা (যেমন: গোদাগাড়ী, গুলশান)',
+                  prefixIcon: Icons.map_outlined,
+                ),
+                const SizedBox(height: 10),
+                CustomTextField(
+                  controller: unionCtrl,
+                  hintText: 'ইউনিয়ন/গ্রাম/এলাকা',
+                  prefixIcon: Icons.holiday_village_outlined,
+                ),
+                const SizedBox(height: 10),
+                CustomTextField(
+                  controller: addressCtrl,
+                  hintText: 'বিস্তারিত সম্পূর্ণ ঠিকানা',
+                  prefixIcon: Icons.home_work_outlined,
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF166534),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: isSaving ? null : () async {
+                      setModalState(() => isSaving = true);
+                      final token = await SharedPrefHelper.getToken();
+                      final updatePayload = {
+                        "district": distCtrl.text.trim(),
+                        "upazila": upazilaCtrl.text.trim(),
+                        "union": unionCtrl.text.trim(),
+                        "address": addressCtrl.text.trim(),
+                      };
+
+                      final res = await ApiClient.updateUserProfile(
+                        token: token,
+                        updateData: updatePayload,
+                      );
+
+                      if (!context.mounted) return;
+                      setModalState(() => isSaving = false);
+                      Navigator.pop(ctx);
+                      if (res["success"] == true) {
+                        await SharedPrefHelper.updateUserLocation(
+                          district: distCtrl.text.trim(),
+                          upazila: upazilaCtrl.text.trim(),
+                          union: unionCtrl.text.trim(),
+                          address: addressCtrl.text.trim(),
+                        );
+                        if (context.mounted) {
+                          context.read<KrishiRepository>().loadProfileFromBackend();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("✓ আপনার ঠিকানা সফলভাবে ব্যাকএন্ডে সংরক্ষিত হয়েছে!"),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(res["message"] ?? "ঠিকানা আপডেট করতে সমস্যা হয়েছে।"),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: isSaving
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('সংরক্ষণ করুন ও ব্যাকএন্ডে আপডেট করুন', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
