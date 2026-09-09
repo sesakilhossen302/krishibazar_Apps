@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../global/Model/krishi_models.dart';
 import '../../../../global/controller/krishi_repository.dart';
+import '../../../Widgegt/verification_feedback_banner.dart';
 import 'farmer_home_controller.dart';
 
 class FarmerHomeScreen extends StatelessWidget {
@@ -99,13 +100,37 @@ class FarmerHomeScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
-                        children: const [
-                          Icon(Icons.check_circle, color: Color(0xFF166534), size: 15),
-                          SizedBox(width: 4),
+                        children: [
+                          Icon(
+                            farmer.verificationStatus == VerificationStatus.verified
+                                ? Icons.check_circle
+                                : farmer.verificationStatus == VerificationStatus.inProgress
+                                    ? Icons.autorenew_rounded
+                                    : Icons.hourglass_top_rounded,
+                            color: farmer.verificationStatus == VerificationStatus.verified
+                                ? const Color(0xFF166534)
+                                : farmer.verificationStatus == VerificationStatus.inProgress
+                                    ? const Color(0xFF0284C7)
+                                    : const Color(0xFFD97706),
+                            size: 15,
+                          ),
+                          const SizedBox(width: 4),
                           Text(
-                            'ভেরিফাইড কৃষক ✅',
+                            farmer.verificationStatus == VerificationStatus.verified
+                                ? 'ভেরিফাইড কৃষক ✅'
+                                : farmer.verificationStatus == VerificationStatus.inProgress
+                                    ? 'যাচাই প্রক্রিয়াধীন 🔄'
+                                    : farmer.verificationStatus == VerificationStatus.suspended
+                                        ? 'স্থগিত 🚫'
+                                        : farmer.verificationStatus == VerificationStatus.rejected
+                                            ? 'বাতিলকৃত ❌'
+                                            : 'অনুমোদনাধীন ⏳',
                             style: TextStyle(
-                              color: Color(0xFF166534),
+                              color: farmer.verificationStatus == VerificationStatus.verified
+                                  ? const Color(0xFF166534)
+                                  : farmer.verificationStatus == VerificationStatus.inProgress
+                                      ? const Color(0xFF0284C7)
+                                      : const Color(0xFFD97706),
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
@@ -133,6 +158,15 @@ class FarmerHomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+
+          // 0. Verification Feedback Alert Banner (NID re-upload / account status)
+          VerificationFeedbackBanner(
+            verificationStatus: farmer.verificationStatus,
+            adminNote: farmer.adminNote,
+            nidStatus: farmer.nidStatus,
+            nidRejectionNote: farmer.nidRejectionNote,
+            currentNidNumber: farmer.nidOrDoc,
+          ),
 
           // 2. Action Button ("আমি পণ্য বিক্রি করতে চাই")
           Material(

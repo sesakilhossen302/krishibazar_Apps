@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../Utils/AppColors/app_colors.dart';
 import '../../../../global/controller/krishi_repository.dart';
 import '../../../Widgegt/Cards/status_badge.dart';
+import '../../../Widgegt/verification_feedback_banner.dart';
 import 'buyer_profile_controller.dart';
 
 class BuyerProfileScreen extends StatelessWidget {
@@ -18,6 +19,13 @@ class BuyerProfileScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
+          VerificationFeedbackBanner(
+            verificationStatus: buyer.verificationStatus,
+            adminNote: buyer.adminNote,
+            nidStatus: buyer.nidStatus,
+            nidRejectionNote: buyer.nidRejectionNote,
+            currentNidNumber: '',
+          ),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),

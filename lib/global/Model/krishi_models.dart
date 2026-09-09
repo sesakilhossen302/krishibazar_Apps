@@ -8,6 +8,7 @@ enum UserRole {
 
 enum VerificationStatus {
   pending('যাচাইকরণ প্রক্রিয়াধীন'),
+  inProgress('তথ্য যাচাই চলমান 🔄'),
   verified('যাচাইকৃত (Verified)'),
   rejected('বাতিলকৃত (Rejected)'),
   suspended('সাময়িক স্থগিত (Suspended)');
@@ -143,6 +144,9 @@ class FarmerProfile {
   final String nidFrontUrl;
   final String nidBackUrl;
   final String krishiCardDocUrl;
+  final String adminNote;
+  final String nidStatus;
+  final String nidRejectionNote;
   final int totalCompletedOrders;
   final double rating;
   final int reviewsCount;
@@ -163,6 +167,9 @@ class FarmerProfile {
     this.nidFrontUrl = '',
     this.nidBackUrl = '',
     this.krishiCardDocUrl = '',
+    this.adminNote = '',
+    this.nidStatus = 'pending',
+    this.nidRejectionNote = '',
     this.totalCompletedOrders = 0,
     this.rating = 0.0,
     this.reviewsCount = 0,
@@ -173,8 +180,12 @@ class FarmerProfile {
     final rawStatus = (json['verification_status'] ?? '').toString().toLowerCase();
     if (rawStatus == 'pending') {
       vStatus = VerificationStatus.pending;
+    } else if (rawStatus == 'inprogress') {
+      vStatus = VerificationStatus.inProgress;
     } else if (rawStatus == 'rejected') {
       vStatus = VerificationStatus.rejected;
+    } else if (rawStatus == 'suspended') {
+      vStatus = VerificationStatus.suspended;
     }
 
     return FarmerProfile(
@@ -193,6 +204,9 @@ class FarmerProfile {
       nidFrontUrl: json['nid_front_url']?.toString() ?? '',
       nidBackUrl: json['nid_back_url']?.toString() ?? '',
       krishiCardDocUrl: json['krishi_card_doc_url']?.toString() ?? '',
+      adminNote: json['admin_note']?.toString() ?? '',
+      nidStatus: json['nid_status']?.toString() ?? 'pending',
+      nidRejectionNote: json['nid_rejection_note']?.toString() ?? '',
       totalCompletedOrders: (json['completed_orders'] is num)
           ? (json['completed_orders'] as num).toInt()
           : 0,
@@ -222,6 +236,9 @@ class BuyerProfile {
   final String nidFrontUrl;
   final String nidBackUrl;
   final VerificationStatus verificationStatus;
+  final String adminNote;
+  final String nidStatus;
+  final String nidRejectionNote;
   final int completedOrders;
   final double rating;
   final int reviewsCount;
@@ -243,6 +260,9 @@ class BuyerProfile {
     this.nidFrontUrl = '',
     this.nidBackUrl = '',
     this.verificationStatus = VerificationStatus.verified,
+    this.adminNote = '',
+    this.nidStatus = 'pending',
+    this.nidRejectionNote = '',
     this.completedOrders = 0,
     this.rating = 0.0,
     this.reviewsCount = 0,
@@ -254,8 +274,12 @@ class BuyerProfile {
     final rawStatus = (json['verification_status'] ?? '').toString().toLowerCase();
     if (rawStatus == 'pending') {
       vStatus = VerificationStatus.pending;
+    } else if (rawStatus == 'inprogress') {
+      vStatus = VerificationStatus.inProgress;
     } else if (rawStatus == 'rejected') {
       vStatus = VerificationStatus.rejected;
+    } else if (rawStatus == 'suspended') {
+      vStatus = VerificationStatus.suspended;
     }
 
     return BuyerProfile(
@@ -274,6 +298,9 @@ class BuyerProfile {
       nidFrontUrl: json['nid_front_url']?.toString() ?? '',
       nidBackUrl: json['nid_back_url']?.toString() ?? '',
       verificationStatus: vStatus,
+      adminNote: json['admin_note']?.toString() ?? '',
+      nidStatus: json['nid_status']?.toString() ?? 'pending',
+      nidRejectionNote: json['nid_rejection_note']?.toString() ?? '',
       completedOrders: (json['completed_orders'] is num)
           ? (json['completed_orders'] as num).toInt()
           : 0,

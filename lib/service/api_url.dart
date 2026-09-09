@@ -39,6 +39,7 @@ class ApiUrl {
   static String get signup => "$baseUrl/auth/signup";
   static String get login => "$baseUrl/auth/login";
   static String get me => "$baseUrl/auth/me";
+  static String get users => "$baseUrl/users";
   static String get profile => "$baseUrl/users/profile";
   static String get userByIdentifier => "$baseUrl/users/by-identifier";
   static String get products => "$baseUrl/products/";

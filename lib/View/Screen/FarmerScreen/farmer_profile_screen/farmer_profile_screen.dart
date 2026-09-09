@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../global/Model/krishi_models.dart';
 import '../../../../global/controller/krishi_repository.dart';
 import '../../../../service/api_url.dart';
+import '../../../Widgegt/verification_feedback_banner.dart';
 import '../../Dialogs/edit_profile_dialog.dart';
 import 'farmer_profile_controller.dart';
 
@@ -177,6 +178,15 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // 0. Verification Feedback Banner (Shows NID rejection with reupload button or account status)
+              VerificationFeedbackBanner(
+                verificationStatus: farmer.verificationStatus,
+                adminNote: farmer.adminNote,
+                nidStatus: farmer.nidStatus,
+                nidRejectionNote: farmer.nidRejectionNote,
+                currentNidNumber: farmer.nidOrDoc,
+              ),
+
               // 1. Top Farmer Profile Card
               Container(
                 width: double.infinity,
@@ -285,23 +295,67 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFDCFCE7),
+                            color: farmer.verificationStatus == VerificationStatus.verified
+                                ? const Color(0xFFDCFCE7)
+                                : farmer.verificationStatus == VerificationStatus.inProgress
+                                    ? const Color(0xFFE0F2FE)
+                                    : farmer.verificationStatus == VerificationStatus.suspended || farmer.verificationStatus == VerificationStatus.rejected
+                                        ? const Color(0xFFFEE2E2)
+                                        : const Color(0xFFFEF3C7),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFF86EFAC)),
+                            border: Border.all(
+                              color: farmer.verificationStatus == VerificationStatus.verified
+                                  ? const Color(0xFF86EFAC)
+                                  : farmer.verificationStatus == VerificationStatus.inProgress
+                                      ? const Color(0xFFBAE6FD)
+                                      : farmer.verificationStatus == VerificationStatus.suspended || farmer.verificationStatus == VerificationStatus.rejected
+                                          ? const Color(0xFFFCA5A5)
+                                          : const Color(0xFFFDE68A),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.verified, color: Color(0xFF166534), size: 16),
+                              Icon(
+                                farmer.verificationStatus == VerificationStatus.verified
+                                    ? Icons.verified
+                                    : farmer.verificationStatus == VerificationStatus.inProgress
+                                        ? Icons.autorenew_rounded
+                                        : farmer.verificationStatus == VerificationStatus.suspended
+                                            ? Icons.block_rounded
+                                            : farmer.verificationStatus == VerificationStatus.rejected
+                                                ? Icons.cancel_rounded
+                                                : Icons.hourglass_top_rounded,
+                                color: farmer.verificationStatus == VerificationStatus.verified
+                                    ? const Color(0xFF166534)
+                                    : farmer.verificationStatus == VerificationStatus.inProgress
+                                        ? const Color(0xFF0284C7)
+                                        : farmer.verificationStatus == VerificationStatus.suspended || farmer.verificationStatus == VerificationStatus.rejected
+                                            ? const Color(0xFFDC2626)
+                                            : const Color(0xFFD97706),
+                                size: 16,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 farmer.verificationStatus == VerificationStatus.verified
                                     ? 'ভেরিফাইড কৃষক'
-                                    : 'অনুমোদনাধীন কৃষক',
-                                style: const TextStyle(
+                                    : farmer.verificationStatus == VerificationStatus.inProgress
+                                        ? 'যাচাই প্রক্রিয়াধীন'
+                                        : farmer.verificationStatus == VerificationStatus.suspended
+                                            ? 'সাময়িক স্থগিত'
+                                            : farmer.verificationStatus == VerificationStatus.rejected
+                                                ? 'বাতিলকৃত'
+                                                : 'অনুমোদনাধীন কৃষক',
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF166534),
+                                  color: farmer.verificationStatus == VerificationStatus.verified
+                                      ? const Color(0xFF166534)
+                                      : farmer.verificationStatus == VerificationStatus.inProgress
+                                          ? const Color(0xFF0284C7)
+                                          : farmer.verificationStatus == VerificationStatus.suspended || farmer.verificationStatus == VerificationStatus.rejected
+                                              ? const Color(0xFFDC2626)
+                                              : const Color(0xFFD97706),
                                 ),
                               ),
                             ],

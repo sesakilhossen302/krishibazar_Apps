@@ -359,5 +359,65 @@ class ApiClient {
       };
     }
   }
+
+  /// Re-upload NID documents when rejected by admin
+  static Future<Map<String, dynamic>> reuploadNid({
+    String? token,
+    required String nidFrontUrl,
+    required String nidBackUrl,
+    String? nidNumber,
+  }) async {
+    final uri = Uri.parse("${ApiUrl.users}/reupload-nid");
+    final Map<String, String> headers = {
+      "Content-Type": "application/json",
+    };
+    if (token != null && token.trim().isNotEmpty) {
+      headers["Authorization"] = "Bearer ${token.trim()}";
+    }
+
+    final body = {
+      "nid_front_url": nidFrontUrl,
+      "nid_back_url": nidBackUrl,
+      if (nidNumber != null && nidNumber.trim().isNotEmpty) "nid_or_doc": nidNumber.trim(),
+    };
+
+    debugPrint('==================================================');
+    debugPrint('🚀 [API REQ] POST Re-upload NID: $uri');
+    debugPrint('📦 [BODY]: ${jsonEncode(body)}');
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: headers,
+        body: jsonEncode(body),
+      );
+
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+      debugPrint('📄 [API RES BODY]: ${response.body}');
+      debugPrint('==================================================');
+
+      dynamic data;
+      try { data = jsonDecode(utf8.decode(response.bodyBytes)); } catch (_) {}
+
+      if (response.statusCode == 200 && data is Map<String, dynamic>) {
+        return {
+          "success": true,
+          "data": data,
+          "message": "এনআইডি কার্ড সফলভাবে আপলোড করা হয়েছে!",
+        };
+      } else {
+        final msg = _extractErrorMessage(data, "এনআইডি কার্ড আপলোড করতে সমস্যা হয়েছে।");
+        return {
+          "success": false,
+          "message": msg,
+        };
+      }
+    } catch (e) {
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+      };
+    }
+  }
 }
 
