@@ -20,10 +20,22 @@ class ApiUrl {
   static String get demands => "$baseUrl/demands/";
   static String get orders => "$baseUrl/orders/";
 
-  /// Helper to convert backend 127.0.0.1 image URLs to 10.0.2.2 for Android Emulator
+  static String get serverBaseUrl {
+    if (kIsWeb) return "http://127.0.0.1:8000";
+    if (!kIsWeb && Platform.isAndroid) return "http://10.0.2.2:8000";
+    return "http://127.0.0.1:8000";
+  }
+
+  /// Helper to convert backend image URLs or paths to valid network image URLs
   static String formatMediaUrl(String? url) {
     if (url == null || url.trim().isEmpty) return "";
     String formatted = url.trim();
+    if (formatted.startsWith("/")) {
+      return "$serverBaseUrl$formatted";
+    }
+    if (!formatted.startsWith("http://") && !formatted.startsWith("https://")) {
+      return "$serverBaseUrl/$formatted";
+    }
     if (!kIsWeb && Platform.isAndroid && formatted.contains("127.0.0.1:8000")) {
       formatted = formatted.replaceAll("127.0.0.1:8000", "10.0.2.2:8000");
     }

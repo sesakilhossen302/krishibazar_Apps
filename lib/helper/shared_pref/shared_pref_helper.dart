@@ -20,6 +20,7 @@ class SharedPrefHelper {
   static const String keyBusinessLicenseNo = 'business_license_no';
   static const String keyShopLocation = 'shop_location';
   static const String keyVerificationStatus = 'verification_status';
+  static const String keyPhotoUrl = 'user_photo_url';
 
   static Future<void> saveUserSession({
     required bool isLoggedIn,
@@ -27,6 +28,7 @@ class SharedPrefHelper {
     required String name,
     required String email,
     required String phone,
+    String? photoUrl,
     String? userId,
     String? token,
     String? district,
@@ -49,6 +51,7 @@ class SharedPrefHelper {
     await prefs.setString(keyUserEmail, email);
     await prefs.setString(keyUserPhone, phone);
 
+    if (photoUrl != null && photoUrl.isNotEmpty) await prefs.setString(keyPhotoUrl, photoUrl);
     if (userId != null && userId.isNotEmpty) await prefs.setString(keyUserId, userId);
     if (token != null && token.isNotEmpty) await prefs.setString(keyToken, token);
     if (district != null && district.isNotEmpty) await prefs.setString(keyDistrict, district);
@@ -141,6 +144,16 @@ class SharedPrefHelper {
   static Future<String> getTradeLicense() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(keyTradeLicense) ?? '';
+  }
+
+  static Future<String> getUserPhotoUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(keyPhotoUrl) ?? '';
+  }
+
+  static Future<void> savePhotoUrl(String photoUrl) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(keyPhotoUrl, photoUrl);
   }
 
   static Future<void> clearSession() async {

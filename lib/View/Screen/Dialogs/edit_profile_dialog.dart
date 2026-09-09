@@ -191,8 +191,10 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       String? uploadedPhotoUrl;
       if (newPhotoFile != null) {
         final uploadRes = await ApiClient.uploadImageFile(newPhotoFile!);
+        debugPrint('📸 [UPLOAD PHOTO RESULT]: $uploadRes');
         if (uploadRes["success"] == true) {
-          uploadedPhotoUrl = uploadRes["file_url"];
+          uploadedPhotoUrl = (uploadRes["url"] ?? uploadRes["full_url"] ?? uploadRes["file_url"])?.toString();
+          debugPrint('📸 [EXTRACTED PHOTO URL]: $uploadedPhotoUrl');
         }
       }
 
@@ -237,6 +239,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
           name: name,
           phone: phoneController.text.trim(),
           email: emailController.text.trim(),
+          photoUrl: uploadedPhotoUrl ?? (widget.isFarmer ? widget.farmer?.photoUrl : widget.buyer?.photoUrl),
           district: districtController.text.trim(),
           upazila: upazilaController.text.trim(),
           union: unionController.text.trim(),
