@@ -2,11 +2,23 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class ApiUrl {
-  static String get baseUrl {
-    if (kIsWeb) return "http://127.0.0.1:8000/api/v1";
-    if (!kIsWeb && Platform.isAndroid) return "http://10.0.2.2:8000/api/v1";
-    return "http://127.0.0.1:8000/api/v1";
+  /// পাবলিক টানেল লিংক: ক্লায়েন্ট বা অন্য ফোনে টেস্ট APK দেওয়ার জন্য
+  /// পিসিতে সার্ভার চালু থাকা অবস্থায় যেকোনো ফোন থেকে কাজ করবে
+  static const String publicServerUrl = "https://configured-hits-tsunami-bikini.trycloudflare.com";
+
+  /// true থাকলে ক্লায়েন্টের ফোন/অন্য যেকোনো ফোনে APK কাজ করবে
+  static const bool usePublicServer = true;
+
+  static String get serverBaseUrl {
+    if (usePublicServer && publicServerUrl.isNotEmpty) {
+      return publicServerUrl;
+    }
+    if (kIsWeb) return "http://127.0.0.1:8000";
+    if (!kIsWeb && Platform.isAndroid) return "http://10.0.2.2:8000";
+    return "http://127.0.0.1:8000";
   }
+
+  static String get baseUrl => "$serverBaseUrl/api/v1";
 
   static String get uploadImage => "$baseUrl/upload/image";
   static String get sendOtp => "$baseUrl/auth/send-otp";
@@ -19,12 +31,6 @@ class ApiUrl {
   static String get products => "$baseUrl/products/";
   static String get demands => "$baseUrl/demands/";
   static String get orders => "$baseUrl/orders/";
-
-  static String get serverBaseUrl {
-    if (kIsWeb) return "http://127.0.0.1:8000";
-    if (!kIsWeb && Platform.isAndroid) return "http://10.0.2.2:8000";
-    return "http://127.0.0.1:8000";
-  }
 
   /// Helper to convert backend image URLs or paths to valid network image URLs
   static String formatMediaUrl(String? url) {
