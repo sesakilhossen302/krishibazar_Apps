@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../Core/AppRoute/app_route.dart';
@@ -39,6 +40,30 @@ class OtpVerificationController extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
 
+    // 1. Upload deferred images (NID Front, NID Back, Trade License) if present
+    String nidFrontUrl = "";
+    String nidBackUrl = "";
+    String tradeLicenseUrl = "";
+
+    if (signupArgs['nidFrontFile'] is File) {
+      final res = await ApiClient.uploadImageFile(signupArgs['nidFrontFile'] as File);
+      if (res["success"] == true) {
+        nidFrontUrl = res["full_url"] ?? "";
+      }
+    }
+    if (signupArgs['nidBackFile'] is File) {
+      final res = await ApiClient.uploadImageFile(signupArgs['nidBackFile'] as File);
+      if (res["success"] == true) {
+        nidBackUrl = res["full_url"] ?? "";
+      }
+    }
+    if (signupArgs['tradeLicenseFile'] is File) {
+      final res = await ApiClient.uploadImageFile(signupArgs['tradeLicenseFile'] as File);
+      if (res["success"] == true) {
+        tradeLicenseUrl = res["full_url"] ?? "";
+      }
+    }
+
     final UserRole role = signupArgs['role'] ?? UserRole.farmer;
 
     final payload = {
@@ -48,9 +73,9 @@ class OtpVerificationController extends ChangeNotifier {
       "email": signupArgs['email'] ?? "",
       "password": signupArgs['password'] ?? "123456",
       "otp_code": pin,
-      "nid_front_url": signupArgs['nidFrontUrl'] ?? "",
-      "nid_back_url": signupArgs['nidBackUrl'] ?? "",
-      "trade_license_url": signupArgs['tradeLicenseUrl'] ?? "",
+      "nid_front_url": nidFrontUrl,
+      "nid_back_url": nidBackUrl,
+      "trade_license_url": tradeLicenseUrl,
       "business_name": signupArgs['businessName'] ?? "",
       "business_type": signupArgs['businessType'] ?? "",
       "arot_location": signupArgs['arotLocation'] ?? "",

@@ -23,16 +23,16 @@ class RegisterController extends ChangeNotifier {
   final TextEditingController farmerTypeController = TextEditingController();
   final TextEditingController farmerLocationController = TextEditingController();
 
+  File? nidFrontFile;
   String? nidFrontImageName;
-  String? nidFrontUrl;
   bool isUploadingNidFront = false;
 
+  File? nidBackFile;
   String? nidBackImageName;
-  String? nidBackUrl;
   bool isUploadingNidBack = false;
 
+  File? tradeLicenseFile;
   String? tradeLicenseImageName;
-  String? tradeLicenseUrl;
   bool isUploadingTradeLicense = false;
 
   String? errorMessage;
@@ -55,81 +55,36 @@ class RegisterController extends ChangeNotifier {
     );
   }
 
-  /// Pick & Upload NID Front Image via Camera/Gallery
+  /// Pick NID Front Image via Camera/Gallery (Stored locally)
   Future<void> pickNidFront(BuildContext context) async {
     final File? file = await ImagePickerDialog.showImageSourceSelector(context);
     if (file == null) return;
 
+    nidFrontFile = file;
     nidFrontImageName = file.path.split(Platform.pathSeparator).last;
-    isUploadingNidFront = true;
-    notifyListeners();
-
-    final res = await ApiClient.uploadImageFile(file);
-    isUploadingNidFront = false;
-
-    if (res["success"] == true) {
-      nidFrontUrl = res["full_url"];
-      formData.nidFrontPath = res["full_url"];
-      if (context.mounted) {
-        _showSnackBar(context, "NID কার্ডের সামনের পাশের ছবি আপলোড সফল হয়েছে! ✅", isError: false);
-      }
-    } else {
-      if (context.mounted) {
-        _showSnackBar(context, res["message"] ?? "ছবি আপলোড করা যায়নি।");
-      }
-    }
+    formData.nidFrontPath = file.path;
     notifyListeners();
   }
 
-  /// Pick & Upload NID Back Image via Camera/Gallery
+  /// Pick NID Back Image via Camera/Gallery (Stored locally)
   Future<void> pickNidBack(BuildContext context) async {
     final File? file = await ImagePickerDialog.showImageSourceSelector(context);
     if (file == null) return;
 
+    nidBackFile = file;
     nidBackImageName = file.path.split(Platform.pathSeparator).last;
-    isUploadingNidBack = true;
-    notifyListeners();
-
-    final res = await ApiClient.uploadImageFile(file);
-    isUploadingNidBack = false;
-
-    if (res["success"] == true) {
-      nidBackUrl = res["full_url"];
-      formData.nidBackPath = res["full_url"];
-      if (context.mounted) {
-        _showSnackBar(context, "NID কার্ডের পেছনের পাশের ছবি আপলোড সফল হয়েছে! ✅", isError: false);
-      }
-    } else {
-      if (context.mounted) {
-        _showSnackBar(context, res["message"] ?? "ছবি আপলোড করা যায়নি।");
-      }
-    }
+    formData.nidBackPath = file.path;
     notifyListeners();
   }
 
-  /// Pick & Upload Trade License Image via Camera/Gallery
+  /// Pick Trade License Image via Camera/Gallery (Stored locally)
   Future<void> pickTradeLicense(BuildContext context) async {
     final File? file = await ImagePickerDialog.showImageSourceSelector(context);
     if (file == null) return;
 
+    tradeLicenseFile = file;
     tradeLicenseImageName = file.path.split(Platform.pathSeparator).last;
-    isUploadingTradeLicense = true;
-    notifyListeners();
-
-    final res = await ApiClient.uploadImageFile(file);
-    isUploadingTradeLicense = false;
-
-    if (res["success"] == true) {
-      tradeLicenseUrl = res["full_url"];
-      formData.tradeLicensePath = res["full_url"];
-      if (context.mounted) {
-        _showSnackBar(context, "ট্রেড লাইসেন্সের ছবি আপলোড সফল হয়েছে! ✅", isError: false);
-      }
-    } else {
-      if (context.mounted) {
-        _showSnackBar(context, res["message"] ?? "ছবি আপলোড করা যায়নি।");
-      }
-    }
+    formData.tradeLicensePath = file.path;
     notifyListeners();
   }
 
@@ -181,9 +136,9 @@ class RegisterController extends ChangeNotifier {
             'email': email,
             'phone': phone,
             'password': password,
-            'nidFrontUrl': nidFrontUrl ?? "",
-            'nidBackUrl': nidBackUrl ?? "",
-            'tradeLicenseUrl': tradeLicenseUrl ?? "",
+            'nidFrontFile': nidFrontFile,
+            'nidBackFile': nidBackFile,
+            'tradeLicenseFile': tradeLicenseFile,
             'businessName': shopNameController.text.trim(),
             'businessType': businessLicenseController.text.trim(),
             'arotLocation': shopLocationController.text.trim(),
