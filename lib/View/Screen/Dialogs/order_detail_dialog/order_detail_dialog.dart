@@ -20,36 +20,46 @@ class OrderDetailDialog extends StatelessWidget {
     final controller = OrderDetailController(repo, currentOrder);
     final isFarmer = controller.currentRole == UserRole.farmer;
 
-    return Dialog.fullscreen(
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF4F7F4),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0.5,
-          leading: IconButton(
-            icon: const Icon(Icons.close, color: Colors.black87),
-            onPressed: controller.close,
-          ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'অর্ডার #${currentOrder.orderNumber}',
-                style: const TextStyle(
-                  color: Color(0xFF166534),
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        controller.close();
+      },
+      child: Dialog.fullscreen(
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF4F7F4),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0.5,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
+              onPressed: () {
+                controller.close();
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
+              },
+            ),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'অর্ডার ট্র্যাকিং #${currentOrder.orderNumber}',
+                  style: const TextStyle(
+                    color: Color(0xFF166534),
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              Text(
-                'তারিখ: ${currentOrder.createdAt}',
-                style: const TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 11,
+                Text(
+                  'তারিখ: ${currentOrder.createdAt}',
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 11,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           actions: [
             IconButton(
               icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF166534)),
@@ -135,8 +145,9 @@ class OrderDetailDialog extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // --- Helper 1: Order Current Status Box ---
   Widget _buildStatusBox(MarketplaceOrder currentOrder) {
@@ -218,8 +229,166 @@ class OrderDetailDialog extends StatelessWidget {
               color: Color(0xFF475569),
             ),
           ),
+          const SizedBox(height: 16),
+          // Live Tracking Progress Stepper
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.route_outlined, size: 16, color: Color(0xFF166534)),
+                    SizedBox(width: 6),
+                    Text(
+                      'লাইভ ট্র্যাকিং টাইমলাইন 📍',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _buildTrackingStep(
+                  title: 'অফার গৃহীত ও অর্ডার তৈরি',
+                  subtitle: 'অর্ডার নং #${currentOrder.orderNumber} সফলভাবে নিশ্চিত হয়েছে',
+                  isCompleted: true,
+                  isActive: false,
+                  icon: Icons.assignment_turned_in_rounded,
+                ),
+                _buildTrackingStep(
+                  title: '২০% সিকিউরিটি ডিপোজিট',
+                  subtitle: currentOrder.isDepositPaid
+                      ? '৳${currentOrder.depositRequired.toStringAsFixed(0)} ডিপোজিট এসক্রোতে সুরক্ষিত রয়েছে'
+                      : 'ডিপোজিট বাকি (৳${currentOrder.depositRequired.toStringAsFixed(0)})',
+                  isCompleted: currentOrder.isDepositPaid,
+                  isActive: !currentOrder.isDepositPaid,
+                  icon: Icons.account_balance_wallet_rounded,
+                ),
+                _buildTrackingStep(
+                  title: 'কালেকশন হাব ও গুণমান যাচাই',
+                  subtitle: currentOrder.verification.isVerified
+                      ? 'ওজন ও ডিজিটাল মান যাচাই সম্পন্ন'
+                      : '${currentOrder.deliveryInfo.collectionCenter} এ পণ্য গ্রহণের অপেক্ষায়',
+                  isCompleted: currentOrder.verification.isVerified ||
+                      currentOrder.orderStatus == OrderStatus.collectionVerified ||
+                      currentOrder.orderStatus == OrderStatus.inTransit ||
+                      currentOrder.orderStatus == OrderStatus.delivered ||
+                      currentOrder.orderStatus == OrderStatus.completed,
+                  isActive: currentOrder.isDepositPaid && !currentOrder.verification.isVerified,
+                  icon: Icons.verified_outlined,
+                ),
+                _buildTrackingStep(
+                  title: 'ট্রাকে লোড ও পরিবহন',
+                  subtitle: currentOrder.deliveryInfo.transportStatus == TransportStatus.inTransit
+                      ? 'ঢাকা মেট্রো-ট ১১-৪৫২৩ গাড়িতে পথে রয়েছে'
+                      : (currentOrder.deliveryInfo.transportStatus == TransportStatus.delivered
+                          ? 'গন্তব্যে পৌঁছেছে'
+                          : 'পরিবহনের জন্য রেডি হচ্ছে'),
+                  isCompleted: currentOrder.deliveryInfo.transportStatus == TransportStatus.delivered ||
+                      currentOrder.orderStatus == OrderStatus.delivered ||
+                      currentOrder.orderStatus == OrderStatus.completed,
+                  isActive: currentOrder.deliveryInfo.transportStatus == TransportStatus.inTransit ||
+                      currentOrder.orderStatus == OrderStatus.inTransit,
+                  icon: Icons.local_shipping_rounded,
+                ),
+                _buildTrackingStep(
+                  title: 'ডেলিভারি ও খালাস সম্পন্ন',
+                  subtitle: currentOrder.orderStatus == OrderStatus.completed
+                      ? 'সম্পূর্ণ পণ্য গ্রহণ ও পেমেন্ট সেটেলমেন্ট সম্পন্ন'
+                      : 'ডেলিভারি ঠিকানা: ${currentOrder.deliveryLocation}',
+                  isCompleted: currentOrder.orderStatus == OrderStatus.completed,
+                  isActive: currentOrder.orderStatus == OrderStatus.delivered,
+                  isLast: true,
+                  icon: Icons.check_circle_rounded,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTrackingStep({
+    required String title,
+    required String subtitle,
+    required bool isCompleted,
+    required bool isActive,
+    required IconData icon,
+    bool isLast = false,
+  }) {
+    final color = isCompleted
+        ? const Color(0xFF166534)
+        : (isActive ? const Color(0xFFEA580C) : const Color(0xFF94A3B8));
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: isCompleted
+                    ? const Color(0xFFDCFCE7)
+                    : (isActive ? const Color(0xFFFFF7ED) : const Color(0xFFF1F5F9)),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isCompleted
+                      ? const Color(0xFF166534)
+                      : (isActive ? const Color(0xFFEA580C) : const Color(0xFFCBD5E1)),
+                  width: isActive ? 2 : 1.5,
+                ),
+              ),
+              child: Icon(icon, size: 14, color: color),
+            ),
+            if (!isLast)
+              Container(
+                width: 2,
+                height: 26,
+                color: isCompleted ? const Color(0xFF166534) : const Color(0xFFE2E8F0),
+              ),
+          ],
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isCompleted || isActive ? FontWeight.bold : FontWeight.w500,
+                    color: isCompleted
+                        ? const Color(0xFF0F172A)
+                        : (isActive ? const Color(0xFFEA580C) : const Color(0xFF64748B)),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: isActive ? const Color(0xFFC2410C) : const Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

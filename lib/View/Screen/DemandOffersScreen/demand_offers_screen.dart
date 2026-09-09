@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../global/Model/krishi_models.dart';
 import '../../../global/controller/krishi_repository.dart';
 import '../../Widgegt/app_media_image.dart';
+import '../Dialogs/order_detail_dialog/order_detail_dialog.dart';
 
 class DemandOffersScreen extends StatefulWidget {
   final BuyerDemand demand;
@@ -639,31 +640,108 @@ class _DemandOffersScreenState extends State<DemandOffersScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
             child: isAccepted
-                ? Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDCFCE7),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFF86EFAC)),
-                    ),
-                    child: const Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.check_circle_rounded, color: Color(0xFF15803D), size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            'অফারটি গৃহীত হয়েছে ও অর্ডার কনফার্ম করা হয়েছে',
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF15803D),
+                ? Column(
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDCFCE7),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF86EFAC)),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle_rounded, color: Color(0xFF15803D), size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'অফারটি সফলভাবে গৃহীত ও অর্ডার নিশ্চিত হয়েছে ✅',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF15803D),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            MarketplaceOrder targetOrder;
+                            try {
+                              targetOrder = repo.orders.firstWhere(
+                                (o) => o.offerId == offer.id || o.demandId == offer.demandId,
+                              );
+                            } catch (_) {
+                              final totalAmt = offer.offeredQuantity * offer.pricePerUnit;
+                              targetOrder = MarketplaceOrder(
+                                id: 'ord_${offer.id}',
+                                orderNumber: 'KB-${offer.id.replaceAll('off_', '').toUpperCase()}',
+                                demandId: offer.demandId,
+                                offerId: offer.id,
+                                buyerId: repo.currentBuyer.id,
+                                buyerName: repo.currentBuyer.name,
+                                buyerBusinessName: repo.currentBuyer.businessName,
+                                buyerPhone: repo.currentBuyer.phone,
+                                farmerId: offer.farmerId,
+                                farmerName: offer.farmerName,
+                                farmerPhone: offer.farmerPhone,
+                                farmerLocation: offer.farmerLocation,
+                                productTitle: widget.demand.productTitle,
+                                category: widget.demand.category,
+                                quantity: offer.offeredQuantity,
+                                unit: offer.unit,
+                                pricePerUnit: offer.pricePerUnit,
+                                totalAmount: totalAmt,
+                                depositRequired: totalAmt * 0.20,
+                                isDepositPaid: false,
+                                orderStatus: OrderStatus.pending,
+                                deliveryLocation: widget.demand.requiredLocation,
+                                expectedDeliveryDate: offer.availableDate,
+                                deliveryInfo: DeliveryInfo(
+                                  pickupLocation: offer.farmerLocation,
+                                  collectionCenter: '${offer.farmerLocation} কালেকশন হাব',
+                                  deliveryLocation: widget.demand.requiredLocation,
+                                ),
+                                verification: QualityVerification(
+                                  expectedWeight: offer.offeredQuantity,
+                                  actualWeight: offer.offeredQuantity,
+                                  unit: offer.unit,
+                                  qualityGrade: offer.qualityGrade,
+                                  isVerified: false,
+                                ),
+                                createdAt: 'এখনই',
+                              );
+                            }
+                            repo.openOrderDetail(targetOrder);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => OrderDetailDialog(order: targetOrder),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.local_shipping_outlined, size: 19),
+                          label: const Text(
+                            'অর্ডার ট্র্যাকিং ও বিস্তারিত দেখুন ➔',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF166534),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   )
                 : SizedBox(
                     width: double.infinity,
@@ -672,10 +750,64 @@ class _DemandOffersScreenState extends State<DemandOffersScreen> {
                           ? null
                           : () async {
                               setState(() => _acceptingOfferId = offer.id);
-                              await repo.acceptOffer(offer.id);
+                              final createdOrder = await repo.acceptOffer(
+                                offer.id,
+                                fallbackOffer: offer,
+                              );
                               if (mounted) {
                                 setState(() => _acceptingOfferId = null);
                                 _loadOffers();
+                                if (createdOrder != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              '🎉 অফার গৃহীত হয়েছে! অর্ডার #${createdOrder.orderNumber} ট্র্যাকিং পেজে নিয়ে যাওয়া হচ্ছে...',
+                                              style: const TextStyle(fontWeight: FontWeight.w600),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      backgroundColor: const Color(0xFF166534),
+                                      behavior: SnackBarBehavior.floating,
+                                      duration: const Duration(seconds: 3),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                  );
+
+                                  // Navigate directly to Order Tracking & Detail page!
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => OrderDetailDialog(order: createdOrder),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              (repo.snackbarMessage != null && repo.snackbarMessage!.isNotEmpty)
+                                                  ? repo.snackbarMessage!
+                                                  : 'অফার গ্রহণে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।',
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      backgroundColor: Colors.red.shade700,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                  );
+                                }
                               }
                             },
                       icon: isAccepting

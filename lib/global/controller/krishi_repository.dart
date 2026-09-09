@@ -836,14 +836,26 @@ class KrishiRepository extends ChangeNotifier {
     return _offers.where((o) => o.demandId == demandId).toList();
   }
 
-  Future<bool> acceptOffer(String offerId) async {
+  Future<MarketplaceOrder?> acceptOffer(String offerId, {FarmerOffer? fallbackOffer}) async {
     final token = await SharedPrefHelper.getToken();
     final buyerId = _currentBuyer.id;
 
-    final offerIndex = _offers.indexWhere((o) => o.id == offerId);
-    if (offerIndex == -1) return false;
-    final offer = _offers[offerIndex];
-    final demandIndex = _demands.indexWhere((d) => d.id == offer.demandId);
+    var offerIndex = _offers.indexWhere((o) => o.id == offerId);
+    FarmerOffer? offer;
+    if (offerIndex != -1) {
+      offer = _offers[offerIndex];
+    } else if (fallbackOffer != null) {
+      offer = fallbackOffer;
+      _offers.add(offer);
+      offerIndex = _offers.length - 1;
+    }
+
+    if (offer == null) {
+      debugPrint('Error: Offer $offerId not found');
+      return null;
+    }
+
+    final demandIndex = _demands.indexWhere((d) => d.id == offer!.demandId);
     final demand = demandIndex != -1 ? _demands[demandIndex] : null;
 
     final res = await ApiClient.acceptOffer(
@@ -852,15 +864,22 @@ class KrishiRepository extends ChangeNotifier {
       buyerId: buyerId.isNotEmpty ? buyerId : null,
     );
 
+    if (res['success'] != true) {
+      snackbarMessage = res['message'] ?? 'অফার গ্রহণে সমস্যা হয়েছে।';
+      notifyListeners();
+      return null;
+    }
+
     final totalAmt = offer.offeredQuantity * offer.pricePerUnit;
     final deposit = totalAmt * 0.20;
+    final orderData = res['data'] is Map ? res['data'] : null;
 
     final newOrder = MarketplaceOrder(
-      id: (res['data'] is Map && res['data']['id'] != null)
-          ? res['data']['id'].toString()
+      id: (orderData != null && orderData['id'] != null)
+          ? orderData['id'].toString()
           : 'ord_${DateTime.now().millisecondsSinceEpoch}',
-      orderNumber: (res['data'] is Map && res['data']['order_number'] != null)
-          ? res['data']['order_number'].toString()
+      orderNumber: (orderData != null && orderData['order_number'] != null)
+          ? orderData['order_number'].toString()
           : 'KB-${1000 + _orders.length + 1}',
       demandId: offer.demandId,
       offerId: offer.id,
@@ -895,34 +914,41 @@ class KrishiRepository extends ChangeNotifier {
         qualityGrade: offer.qualityGrade,
         isVerified: false,
       ),
-      createdAt: 'এখনই',
+      createdAt: (orderData != null && orderData['created_at'] != null)
+          ? orderData['created_at'].toString()
+          : 'এখনই',
     );
 
+    _orders.removeWhere((o) => o.id == newOrder.id);
     _orders.insert(0, newOrder);
-    _offers[offerIndex] = FarmerOffer(
-      id: offer.id,
-      demandId: offer.demandId,
-      farmerId: offer.farmerId,
-      farmerName: offer.farmerName,
-      farmerPhone: offer.farmerPhone,
-      farmerLocation: offer.farmerLocation,
-      farmerVerified: offer.farmerVerified,
-      farmerPhotoUrl: offer.farmerPhotoUrl,
-      offeredQuantity: offer.offeredQuantity,
-      unit: offer.unit,
-      pricePerUnit: offer.pricePerUnit,
-      qualityGrade: offer.qualityGrade,
-      availableDate: offer.availableDate,
-      note: offer.note,
-      status: OfferStatus.accepted,
-      createdAt: offer.createdAt,
-    );
+
+    final currentOfferIdx = _offers.indexWhere((o) => o.id == offer!.id);
+    if (currentOfferIdx != -1) {
+      _offers[currentOfferIdx] = FarmerOffer(
+        id: offer.id,
+        demandId: offer.demandId,
+        farmerId: offer.farmerId,
+        farmerName: offer.farmerName,
+        farmerPhone: offer.farmerPhone,
+        farmerLocation: offer.farmerLocation,
+        farmerVerified: offer.farmerVerified,
+        farmerPhotoUrl: offer.farmerPhotoUrl,
+        offeredQuantity: offer.offeredQuantity,
+        unit: offer.unit,
+        pricePerUnit: offer.pricePerUnit,
+        qualityGrade: offer.qualityGrade,
+        availableDate: offer.availableDate,
+        note: offer.note,
+        status: OfferStatus.accepted,
+        createdAt: offer.createdAt,
+      );
+    }
 
     closeDemandOfferManagement();
     snackbarMessage = res['message'] ?? StaticString.offerAcceptedSuccess;
     notifyListeners();
     fetchDemandsFromBackend();
-    return res['success'] == true;
+    return newOrder;
   }
 
   void payDeposit(String orderId) {
