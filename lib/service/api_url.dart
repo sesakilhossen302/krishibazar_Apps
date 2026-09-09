@@ -46,6 +46,7 @@ class ApiUrl {
   static String get userByIdentifier => "$baseUrl/users/by-identifier";
   static String get products => "$baseUrl/products/";
   static String get demands => "$baseUrl/demands/";
+  static String get myDemands => "$baseUrl/demands/my-demands";
   static String get orders => "$baseUrl/orders/";
   static String get notifications => "$baseUrl/notifications/";
   static String get unreadNotificationsCount => "$baseUrl/notifications/unread-count";

@@ -655,6 +655,107 @@ class BuyerDemand {
     this.offersCount = 0,
     required this.createdAt,
   });
+
+  factory BuyerDemand.fromBackendMap(Map<String, dynamic> json) {
+    // category mapping
+    final catStr = (json['category'] ?? '').toString();
+    ProductCategory cat = ProductCategory.other;
+    for (var c in ProductCategory.values) {
+      if (c.labelBn == catStr || c.name.toLowerCase() == catStr.toLowerCase()) {
+        cat = c;
+        break;
+      }
+    }
+    if (cat == ProductCategory.other) {
+      if (catStr.contains('শাক') || catStr.contains('সবজি') || catStr.contains('vegetable')) {
+        cat = ProductCategory.vegetables;
+      } else if (catStr.contains('ফল') || catStr.contains('fruit')) {
+        cat = ProductCategory.fruits;
+      } else if (catStr.contains('ধান') || catStr.contains('paddy')) {
+        cat = ProductCategory.paddy;
+      } else if (catStr.contains('চাল') || catStr.contains('rice')) {
+        cat = ProductCategory.rice;
+      } else if (catStr.contains('গম') || catStr.contains('wheat')) {
+        cat = ProductCategory.wheat;
+      } else if (catStr.contains('আলু') || catStr.contains('potato')) {
+        cat = ProductCategory.potato;
+      } else if (catStr.contains('পেঁয়াজ') || catStr.contains('onion')) {
+        cat = ProductCategory.onion;
+      } else if (catStr.contains('মাছ') || catStr.contains('fish')) {
+        cat = ProductCategory.fish;
+      }
+    }
+
+    // unit mapping
+    final unitStr = (json['unit'] ?? '').toString();
+    ProductUnit u = ProductUnit.kg;
+    for (var val in ProductUnit.values) {
+      if (val.labelBn == unitStr || val.name.toLowerCase() == unitStr.toLowerCase()) {
+        u = val;
+        break;
+      }
+    }
+    if (unitStr.contains('মন')) {
+      u = ProductUnit.mon;
+    } else if (unitStr.contains('টন')) {
+      u = ProductUnit.ton;
+    } else if (unitStr.contains('পিস') || unitStr.contains('আঁটি')) {
+      u = ProductUnit.piece;
+    }
+
+    // quality grade mapping
+    final gradeStr = (json['quality_grade'] ?? '').toString();
+    QualityGrade qGrade = QualityGrade.gradeA;
+    if (gradeStr.contains('B') || gradeStr.contains('সাধারণ')) {
+      qGrade = QualityGrade.gradeB;
+    } else if (gradeStr.contains('জৈব') || gradeStr.contains('অর্গানিক') || gradeStr.toLowerCase().contains('organic')) {
+      qGrade = QualityGrade.organic;
+    } else {
+      qGrade = QualityGrade.gradeA;
+    }
+
+    // status mapping
+    final statusStr = (json['status'] ?? 'active').toString().toLowerCase();
+    DemandStatus st = DemandStatus.active;
+    if (statusStr.contains('fulfilled') || statusStr.contains('পূরণ')) {
+      st = DemandStatus.fulfilled;
+    } else if (statusStr.contains('cancelled') || statusStr.contains('বাতিল')) {
+      st = DemandStatus.cancelled;
+    }
+
+    return BuyerDemand(
+      id: (json['id'] ?? '').toString(),
+      buyerId: (json['buyer_id'] ?? '').toString(),
+      buyerName: (json['buyer_name'] ?? json['buyer_business_name'] ?? 'ক্রেতা').toString(),
+      buyerBusinessName: (json['buyer_business_name'] ?? json['buyer_name'] ?? 'ব্যবসা প্রতিষ্ঠান').toString(),
+      buyerDistrict: (json['buyer_district'] ?? json['required_location'] ?? 'ঢাকা').toString(),
+      buyerVerified: json['buyer_verified'] == true || json['buyer_verified'] == null,
+      productTitle: (json['product_title'] ?? '').toString(),
+      category: cat,
+      requiredQuantity: (json['required_quantity'] is num)
+          ? (json['required_quantity'] as num).toDouble()
+          : (double.tryParse(json['required_quantity']?.toString() ?? '') ?? 0.0),
+      fulfilledQuantity: (json['fulfilled_quantity'] is num)
+          ? (json['fulfilled_quantity'] as num).toDouble()
+          : (double.tryParse(json['fulfilled_quantity']?.toString() ?? '') ?? 0.0),
+      unit: u,
+      requiredLocation: (json['required_location'] ?? '').toString(),
+      requiredDate: (json['required_date'] ?? '').toString(),
+      minExpectedPrice: (json['min_expected_price'] is num)
+          ? (json['min_expected_price'] as num).toDouble()
+          : (double.tryParse(json['min_expected_price']?.toString() ?? '') ?? 0.0),
+      maxExpectedPrice: (json['max_expected_price'] is num)
+          ? (json['max_expected_price'] as num).toDouble()
+          : (double.tryParse(json['max_expected_price']?.toString() ?? '') ?? 0.0),
+      qualityGrade: qGrade,
+      additionalNote: (json['additional_note'] ?? '').toString(),
+      status: st,
+      offersCount: (json['offers_count'] is int)
+          ? json['offers_count']
+          : (int.tryParse(json['offers_count']?.toString() ?? '') ?? 0),
+      createdAt: (json['created_at'] ?? '').toString(),
+    );
+  }
 }
 
 class FarmerOffer {

@@ -273,6 +273,41 @@ class KrishiRepository extends ChangeNotifier {
     }
   }
 
+  bool isLoadingDemands = false;
+
+  Future<void> fetchDemandsFromBackend({bool force = false}) async {
+    isLoadingDemands = true;
+    notifyListeners();
+
+    try {
+      final res = await ApiClient.fetchDemands();
+      if (res['success'] == true && res['data'] is List) {
+        final List list = res['data'];
+        if (list.isNotEmpty) {
+          final List<BuyerDemand> backendDemands = list.map((item) {
+            return BuyerDemand.fromBackendMap(item);
+          }).toList();
+
+          final Map<String, BuyerDemand> demandMap = {};
+          for (var d in backendDemands) {
+            demandMap[d.id] = d;
+          }
+          for (var d in _demands) {
+            if (!demandMap.containsKey(d.id)) {
+              demandMap[d.id] = d;
+            }
+          }
+          _demands = demandMap.values.toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching demands from backend: $e');
+    } finally {
+      isLoadingDemands = false;
+      notifyListeners();
+    }
+  }
+
   Timer? _periodicSyncTimer;
 
   void startPeriodicSync() {
@@ -282,6 +317,7 @@ class KrishiRepository extends ChangeNotifier {
       if (isLoggedIn) {
         loadProfileFromBackend();
         fetchProductsFromBackend();
+        fetchDemandsFromBackend();
       }
     });
   }
@@ -295,6 +331,7 @@ class KrishiRepository extends ChangeNotifier {
     _initData();
     loadProfileFromBackend();
     fetchProductsFromBackend();
+    fetchDemandsFromBackend();
     startPeriodicSync();
   }
 
@@ -972,7 +1009,7 @@ class KrishiRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  void submitDemand(
+  Future<bool> submitDemand(
     String title,
     ProductCategory cat,
     double qty,
@@ -983,29 +1020,72 @@ class KrishiRepository extends ChangeNotifier {
     double maxP,
     QualityGrade grade,
     String note,
-  ) {
-    final newDemand = BuyerDemand(
-      id: 'dem_${DateTime.now().millisecondsSinceEpoch}',
-      buyerId: _currentBuyer.id,
-      buyerName: _currentBuyer.name,
-      buyerBusinessName: _currentBuyer.businessName,
-      buyerDistrict: _currentBuyer.district,
-      productTitle: title,
-      category: cat,
-      requiredQuantity: qty,
-      unit: unit,
-      requiredLocation: loc,
-      requiredDate: reqDate,
-      minExpectedPrice: minP,
-      maxExpectedPrice: maxP,
-      qualityGrade: grade,
-      additionalNote: note,
-      createdAt: 'এখনই',
+  ) async {
+    final token = await SharedPrefHelper.getToken();
+    final currentUserId = _currentBuyer.id;
+
+    final body = {
+      "product_title": title,
+      "category": cat.labelBn,
+      "required_quantity": qty,
+      "unit": unit.labelBn,
+      "required_location": loc,
+      "required_date": reqDate,
+      "min_expected_price": minP,
+      "max_expected_price": maxP,
+      "quality_grade": grade.labelBn,
+      "additional_note": note.trim().isNotEmpty ? note.trim() : null,
+    };
+
+    final res = await ApiClient.createDemand(
+      body,
+      token: token.isNotEmpty ? token : null,
+      userId: currentUserId.isNotEmpty ? currentUserId : null,
     );
+
+    BuyerDemand newDemand;
+    if (res['success'] == true && res['data'] is Map<String, dynamic>) {
+      newDemand = BuyerDemand.fromBackendMap(res['data']);
+    } else {
+      newDemand = BuyerDemand(
+        id: 'dem_${DateTime.now().millisecondsSinceEpoch}',
+        buyerId: _currentBuyer.id,
+        buyerName: _currentBuyer.name,
+        buyerBusinessName: _currentBuyer.businessName,
+        buyerDistrict: _currentBuyer.district,
+        productTitle: title,
+        category: cat,
+        requiredQuantity: qty,
+        unit: unit,
+        requiredLocation: loc,
+        requiredDate: reqDate,
+        minExpectedPrice: minP,
+        maxExpectedPrice: maxP,
+        qualityGrade: grade,
+        additionalNote: note,
+        createdAt: 'এখনই',
+      );
+    }
+
     _demands.insert(0, newDemand);
     closeAddDemandDialog();
     snackbarMessage = StaticString.demandAddedSuccess;
     notifyListeners();
+    fetchDemandsFromBackend();
+    return res['success'] == true;
+  }
+
+  Future<bool> deleteDemand(String demandId) async {
+    final token = await SharedPrefHelper.getToken();
+    final res = await ApiClient.deleteDemand(
+      demandId,
+      token: token.isNotEmpty ? token : null,
+      userId: _currentBuyer.id.isNotEmpty ? _currentBuyer.id : null,
+    );
+    _demands.removeWhere((d) => d.id == demandId);
+    snackbarMessage = "চাহিদা সফলভাবে মুছে ফেলা হয়েছে!";
+    notifyListeners();
+    return res['success'] == true;
   }
 
   void submitOffer(

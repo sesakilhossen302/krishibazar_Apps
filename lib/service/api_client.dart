@@ -803,6 +803,211 @@ class ApiClient {
       };
     }
   }
+
+  // ================= DEMANDS (চাহিদা) =================
+
+  /// Create a new buyer demand
+  static Future<Map<String, dynamic>> createDemand(
+    Map<String, dynamic> body, {
+    String? token,
+    String? userId,
+  }) async {
+    Uri uri = Uri.parse(ApiUrl.demands);
+    if (userId != null && userId.isNotEmpty) {
+      uri = uri.replace(queryParameters: {'buyer_id': userId});
+    }
+
+    final headers = <String, String>{
+      "Content-Type": "application/json",
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    debugPrint('🚀 [API REQ] POST Create Demand: $uri');
+    debugPrint('📦 [BODY]: ${jsonEncode(body)}');
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: headers,
+        body: jsonEncode(body),
+      );
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+      debugPrint('📄 [API RES BODY]: ${response.body}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          "success": true,
+          "message": "চাহিদা সফলভাবে পোস্ট করা হয়েছে!",
+          "data": data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "চাহিদা পোস্ট করতে সমস্যা হয়েছে।"),
+          "data": data,
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - CREATE DEMAND]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+      };
+    }
+  }
+
+  /// Fetch demands posted by the currently logged-in buyer / shopkeeper
+  static Future<Map<String, dynamic>> fetchMyDemands({
+    String? token,
+    String? buyerId,
+  }) async {
+    Uri uri = Uri.parse(ApiUrl.myDemands);
+    if (buyerId != null && buyerId.isNotEmpty) {
+      uri = uri.replace(queryParameters: {'buyer_id': buyerId});
+    }
+
+    final headers = <String, String>{};
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    debugPrint('🚀 [API REQ] GET My Demands: $uri');
+
+    try {
+      final response = await http.get(uri, headers: headers);
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 && data is List) {
+        return {
+          "success": true,
+          "data": data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "আপনার চাহিদার তালিকা লোড করা যায়নি।"),
+          "data": [],
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - FETCH MY DEMANDS]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+        "data": [],
+      };
+    }
+  }
+
+  /// Fetch public demands (with optional category, district, search filter)
+  static Future<Map<String, dynamic>> fetchDemands({
+    String? buyerId,
+    String? category,
+    String? district,
+    String? search,
+  }) async {
+    final queryParams = <String, String>{};
+    if (buyerId != null && buyerId.isNotEmpty) queryParams['buyer_id'] = buyerId;
+    if (category != null && category.isNotEmpty && category != 'সকল') queryParams['category'] = category;
+    if (district != null && district.isNotEmpty) queryParams['district'] = district;
+    if (search != null && search.isNotEmpty) queryParams['search'] = search;
+
+    Uri uri = Uri.parse(ApiUrl.demands);
+    if (queryParams.isNotEmpty) {
+      uri = uri.replace(queryParameters: queryParams);
+    }
+
+    debugPrint('🚀 [API REQ] GET Demands: $uri');
+
+    try {
+      final response = await http.get(uri);
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 && data is List) {
+        return {
+          "success": true,
+          "data": data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "চাহিদার তালিকা লোড করা যায়নি।"),
+          "data": [],
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - FETCH DEMANDS]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+        "data": [],
+      };
+    }
+  }
+
+  /// Delete a demand
+  static Future<Map<String, dynamic>> deleteDemand(
+    String demandId, {
+    String? token,
+    String? userId,
+  }) async {
+    Uri uri = Uri.parse("${ApiUrl.demands}$demandId");
+    if (userId != null && userId.isNotEmpty) {
+      uri = uri.replace(queryParameters: {'user_id': userId});
+    }
+
+    final headers = <String, String>{};
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    debugPrint('🚀 [API REQ] DELETE Demand: $uri');
+
+    try {
+      final response = await http.delete(uri, headers: headers);
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return {
+          "success": true,
+          "message": "চাহিদা সফলভাবে মুছে ফেলা হয়েছে!",
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "চাহিদা মুছতে সমস্যা হয়েছে।"),
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - DELETE DEMAND]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+      };
+    }
+  }
 }
 
 
