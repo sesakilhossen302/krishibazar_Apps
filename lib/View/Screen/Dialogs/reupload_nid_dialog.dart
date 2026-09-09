@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../Utils/AppColors/app_colors.dart';
+import '../../../global/controller/krishi_controller.dart';
 import '../../../global/controller/krishi_repository.dart';
 import '../../../helper/shared_pref/shared_pref_helper.dart';
 import '../../../service/api_client.dart';
@@ -100,24 +101,26 @@ class _ReuploadNidDialogState extends State<ReuploadNidDialog> {
 
     try {
       final token = await SharedPrefHelper.getToken();
+      final userId = await SharedPrefHelper.getUserId();
 
       // 1. Upload NID Front Image
       final frontRes = await ApiClient.uploadImageFile(_nidFrontFile!);
-      if (frontRes['success'] != true || frontRes['data'] == null) {
+      if (frontRes['success'] != true) {
         throw Exception(frontRes['message'] ?? 'সামনের ছবি আপলোড করতে সমস্যা হয়েছে');
       }
-      final String frontUrl = frontRes['data']['file_url'] ?? '';
+      final String frontUrl = (frontRes['full_url'] ?? frontRes['url'] ?? frontRes['data']?['file_url'] ?? frontRes['data']?['url'] ?? '').toString();
 
       // 2. Upload NID Back Image
       final backRes = await ApiClient.uploadImageFile(_nidBackFile!);
-      if (backRes['success'] != true || backRes['data'] == null) {
+      if (backRes['success'] != true) {
         throw Exception(backRes['message'] ?? 'পেছনের ছবি আপলোড করতে সমস্যা হয়েছে');
       }
-      final String backUrl = backRes['data']['file_url'] ?? '';
+      final String backUrl = (backRes['full_url'] ?? backRes['url'] ?? backRes['data']?['file_url'] ?? backRes['data']?['url'] ?? '').toString();
 
       // 3. Call reupload-nid endpoint
       final submitRes = await ApiClient.reuploadNid(
-        token: token,
+        token: token.isNotEmpty ? token : null,
+        userId: userId.isNotEmpty ? userId : null,
         nidFrontUrl: frontUrl,
         nidBackUrl: backUrl,
         nidNumber: _nidController.text.trim(),
@@ -126,14 +129,18 @@ class _ReuploadNidDialogState extends State<ReuploadNidDialog> {
       if (submitRes['success'] == true) {
         if (!mounted) return;
         final repo = context.read<KrishiRepository>();
+        final controller = context.read<KrishiController>();
         final nav = Navigator.of(context);
         final messenger = ScaffoldMessenger.of(context);
 
+        // 1. Immediately close popup/modal!
         nav.pop();
+
+        // 2. Show success SnackBar
         messenger.showSnackBar(
           const SnackBar(
             content: Text(
-              'এনআইডি কার্ড সফলভাবে পুনরায় জমা দেওয়া হয়েছে! অ্যাডমিন পর্যালোচনার পর অনুমোদন করবেন। ✅',
+              'এনআইডি কার্ড সফলভাবে জমা দেওয়া হয়েছে! স্ট্যাটাস অপেক্ষমাণ (Pending) করা হলো। ✅',
             ),
             backgroundColor: Color(0xFF15803D),
             behavior: SnackBarBehavior.floating,
@@ -141,7 +148,16 @@ class _ReuploadNidDialogState extends State<ReuploadNidDialog> {
           ),
         );
 
+        // 3. Immediately update local state so top bar badge & banner switch to pending without delay
+        repo.onNidReuploaded(
+          nidNumber: _nidController.text.trim(),
+          nidFrontUrl: frontUrl,
+          nidBackUrl: backUrl,
+        );
+
+        // 4. Reload profile & notifications from backend
         await repo.loadProfileFromBackend();
+        await controller.loadProfileFromBackend();
       } else {
         throw Exception(submitRes['message'] ?? 'জমা দিতে সমস্যা হয়েছে');
       }

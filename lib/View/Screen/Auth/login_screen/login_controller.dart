@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../Dialogs/account_status_dialog.dart';
 import '../../../../Core/AppRoute/app_route.dart';
 import '../../../../Utils/AppColors/app_colors.dart';
 import '../../../../global/Model/krishi_models.dart';
@@ -23,17 +24,18 @@ class LoginController extends ChangeNotifier {
         content: Text(message, style: const TextStyle(color: Colors.white)),
         backgroundColor: isError ? Colors.red.shade700 : AppColors.primaryGreen,
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
       ),
     );
   }
 
-  Future<void> onLoginClick(BuildContext context) async {
+  Future<void> onLoginClick(BuildContext context) => login(context);
+
+  Future<void> login(BuildContext context) async {
     final identifier = emailController.text.trim();
-    final password = passwordController.text.trim();
+    final password = passwordController.text;
 
     if (identifier.isEmpty || password.isEmpty) {
-      _showSnackBar(context, "ফোন নম্বর/ইমেইল এবং পাসওয়ার্ড প্রদান করুন।");
+      _showSnackBar(context, "অনুগ্রহ করে আপনার ফোন বা ইমেইল এবং পাসওয়ার্ড দিন।");
       return;
     }
 
@@ -56,18 +58,20 @@ class LoginController extends ChangeNotifier {
       final token = res["access_token"] ?? userMap["access_token"] ?? "";
       final userId = res["user_id"] ?? userMap["user_id"] ?? "";
       final userDistrict = userMap["district"] ?? "";
-      final vStatus = userMap["verification_status"] ?? "verified";
+      final userName = (res["name"] ?? userMap["name"] ?? "ব্যবহারকারী").toString();
+      final vStatus = (res["verification_status"] ?? userMap["verification_status"] ?? "pending").toString();
+      final adminNote = (res["admin_note"] ?? userMap["admin_note"] ?? "").toString();
 
       await SharedPrefHelper.saveUserSession(
         isLoggedIn: true,
         role: roleEnum.name,
-        name: res["name"] ?? userMap["name"] ?? "ব্যবহারকারী",
+        name: userName,
         email: identifier.contains("@") ? identifier : (userMap["email"] ?? ""),
         phone: !identifier.contains("@") ? identifier : (userMap["phone"] ?? ""),
         userId: userId.toString(),
         token: token.toString(),
         district: userDistrict.toString(),
-        verificationStatus: vStatus.toString(),
+        verificationStatus: vStatus,
       );
 
       if (context.mounted) {
@@ -78,13 +82,26 @@ class LoginController extends ChangeNotifier {
         context.read<KrishiRepository>().loadProfileFromBackend();
         context.read<KrishiController>().loadProfileFromBackend();
 
-        _showSnackBar(
-          context,
-          "স্বাগতম ${res['name'] ?? userMap['name'] ?? ''}! আপনার অ্যাকাউন্টে সফলভাবে প্রবেশ করেছেন। 🎉",
-          isError: false,
-        );
+        final vLower = vStatus.toLowerCase();
+        if (vLower == 'suspended' || vLower == 'rejected') {
+          // Show popup dialog with admin's reason/note
+          await AccountStatusDialog.show(
+            context,
+            status: vStatus,
+            adminNote: adminNote,
+            userName: userName,
+          );
+        } else {
+          _showSnackBar(
+            context,
+            "স্বাগতম $userName! আপনার অ্যাকাউন্টে সফলভাবে প্রবেশ করেছেন। 🎉",
+            isError: false,
+          );
+        }
 
-        Navigator.pushReplacementNamed(context, AppRoute.mainScreen);
+        if (context.mounted) {
+          Navigator.pushReplacementNamed(context, AppRoute.mainScreen);
+        }
       }
     } else {
       if (context.mounted) {

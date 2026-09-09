@@ -116,7 +116,7 @@ class OtpVerificationController extends ChangeNotifier {
         farmerType: signupArgs['farmerType'],
         district: district,
         upazila: upazila,
-        verificationStatus: "verified",
+        verificationStatus: (res["verification_status"] ?? userMap["verification_status"] ?? "pending").toString(),
       );
 
       if (context.mounted) {
