@@ -15,7 +15,18 @@ class ApiUrl {
   static String get login => "$baseUrl/auth/login";
   static String get me => "$baseUrl/auth/me";
   static String get profile => "$baseUrl/users/profile";
+  static String get userByIdentifier => "$baseUrl/users/by-identifier";
   static String get products => "$baseUrl/products/";
   static String get demands => "$baseUrl/demands/";
   static String get orders => "$baseUrl/orders/";
+
+  /// Helper to convert backend 127.0.0.1 image URLs to 10.0.2.2 for Android Emulator
+  static String formatMediaUrl(String? url) {
+    if (url == null || url.trim().isEmpty) return "";
+    String formatted = url.trim();
+    if (!kIsWeb && Platform.isAndroid && formatted.contains("127.0.0.1:8000")) {
+      formatted = formatted.replaceAll("127.0.0.1:8000", "10.0.2.2:8000");
+    }
+    return formatted;
+  }
 }

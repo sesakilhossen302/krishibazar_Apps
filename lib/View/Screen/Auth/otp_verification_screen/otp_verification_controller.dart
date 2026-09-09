@@ -89,17 +89,36 @@ class OtpVerificationController extends ChangeNotifier {
     notifyListeners();
 
     if (res["success"] == true) {
+      final userMap = (res["data"] is Map) ? (res["data"] as Map) : {};
+      final token = res["access_token"] ?? userMap["access_token"] ?? "";
+      final userId = res["user_id"] ?? userMap["user_id"] ?? "";
+
       await SharedPrefHelper.saveUserSession(
         isLoggedIn: true,
         role: role.name,
-        name: signupArgs['name'] ?? "",
-        email: signupArgs['email'] ?? "",
-        phone: signupArgs['phone'] ?? "",
+        name: signupArgs['name'] ?? userMap['name'] ?? "",
+        email: signupArgs['email'] ?? userMap['email'] ?? "",
+        phone: signupArgs['phone'] ?? userMap['phone'] ?? "",
+        userId: userId.toString(),
+        token: token.toString(),
+        nidFront: nidFrontUrl,
+        nidBack: nidBackUrl,
+        tradeLicense: tradeLicenseUrl,
+        shopName: signupArgs['businessName'],
+        shopLocation: signupArgs['arotLocation'],
+        farmerType: signupArgs['farmerType'],
+        district: signupArgs['district'] ?? "রাজশাহী",
+        upazila: signupArgs['farmerLocation'] ?? signupArgs['upazila'],
+        verificationStatus: "verified",
       );
 
       if (context.mounted) {
         context.read<KrishiController>().switchRole(role);
         context.read<KrishiRepository>().switchRole(role);
+
+        // Immediately load user profile from backend
+        context.read<KrishiRepository>().loadProfileFromBackend();
+        context.read<KrishiController>().loadProfileFromBackend();
 
         _showSnackBar(
           context,

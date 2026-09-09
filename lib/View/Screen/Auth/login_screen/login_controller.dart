@@ -52,21 +52,35 @@ class LoginController extends ChangeNotifier {
       final roleStr = (res["role"] ?? "farmer").toString().toLowerCase();
       final roleEnum = roleStr == 'buyer' ? UserRole.buyer : UserRole.farmer;
 
+      final userMap = (res["data"] is Map) ? (res["data"] as Map) : {};
+      final token = res["access_token"] ?? userMap["access_token"] ?? "";
+      final userId = res["user_id"] ?? userMap["user_id"] ?? "";
+      final userDistrict = userMap["district"] ?? "";
+      final vStatus = userMap["verification_status"] ?? "verified";
+
       await SharedPrefHelper.saveUserSession(
         isLoggedIn: true,
         role: roleEnum.name,
-        name: res["name"] ?? "ব্যবহারকারী",
-        email: identifier.contains("@") ? identifier : "",
-        phone: !identifier.contains("@") ? identifier : "",
+        name: res["name"] ?? userMap["name"] ?? "ব্যবহারকারী",
+        email: identifier.contains("@") ? identifier : (userMap["email"] ?? ""),
+        phone: !identifier.contains("@") ? identifier : (userMap["phone"] ?? ""),
+        userId: userId.toString(),
+        token: token.toString(),
+        district: userDistrict.toString(),
+        verificationStatus: vStatus.toString(),
       );
 
       if (context.mounted) {
         context.read<KrishiController>().switchRole(roleEnum);
         context.read<KrishiRepository>().switchRole(roleEnum);
 
+        // Immediately load user profile from backend
+        context.read<KrishiRepository>().loadProfileFromBackend();
+        context.read<KrishiController>().loadProfileFromBackend();
+
         _showSnackBar(
           context,
-          "স্বাগতম ${res['name'] ?? ''}! আপনার অ্যাকাউন্টে সফলভাবে প্রবেশ করেছেন। 🎉",
+          "স্বাগতম ${res['name'] ?? userMap['name'] ?? ''}! আপনার অ্যাকাউন্টে সফলভাবে প্রবেশ করেছেন। 🎉",
           isError: false,
         );
 

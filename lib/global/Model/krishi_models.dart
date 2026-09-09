@@ -131,6 +131,7 @@ class FarmerProfile {
   final String id;
   final String name;
   final String phone;
+  final String email;
   final String photoUrl;
   final String district;
   final String upazila;
@@ -139,6 +140,9 @@ class FarmerProfile {
   final String farmerType;
   final VerificationStatus verificationStatus;
   final String nidOrDoc;
+  final String nidFrontUrl;
+  final String nidBackUrl;
+  final String krishiCardDocUrl;
   final int totalCompletedOrders;
   final double rating;
   final int reviewsCount;
@@ -147,6 +151,7 @@ class FarmerProfile {
     required this.id,
     required this.name,
     required this.phone,
+    this.email = '',
     this.photoUrl = '',
     required this.district,
     required this.upazila,
@@ -155,22 +160,67 @@ class FarmerProfile {
     required this.farmerType,
     this.verificationStatus = VerificationStatus.verified,
     this.nidOrDoc = 'NID-7829102938',
+    this.nidFrontUrl = '',
+    this.nidBackUrl = '',
+    this.krishiCardDocUrl = '',
     this.totalCompletedOrders = 12,
     this.rating = 4.8,
     this.reviewsCount = 18,
   });
+
+  factory FarmerProfile.fromBackendMap(Map<String, dynamic> json) {
+    VerificationStatus vStatus = VerificationStatus.verified;
+    final rawStatus = (json['verification_status'] ?? '').toString().toLowerCase();
+    if (rawStatus == 'pending') {
+      vStatus = VerificationStatus.pending;
+    } else if (rawStatus == 'rejected') {
+      vStatus = VerificationStatus.rejected;
+    }
+
+    return FarmerProfile(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'কৃষক',
+      phone: json['phone']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      photoUrl: json['photo_url']?.toString() ?? '',
+      district: json['district']?.toString() ?? 'রাজশাহী',
+      upazila: json['upazila']?.toString() ?? '',
+      union: json['union']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      farmerType: json['farmer_type']?.toString() ?? 'সাধারণ কৃষক',
+      verificationStatus: vStatus,
+      nidOrDoc: json['nid_or_doc']?.toString() ?? '',
+      nidFrontUrl: json['nid_front_url']?.toString() ?? '',
+      nidBackUrl: json['nid_back_url']?.toString() ?? '',
+      krishiCardDocUrl: json['krishi_card_doc_url']?.toString() ?? '',
+      totalCompletedOrders: (json['completed_orders'] is num)
+          ? (json['completed_orders'] as num).toInt()
+          : 0,
+      rating: (json['rating'] is num)
+          ? (json['rating'] as num).toDouble()
+          : 5.0,
+      reviewsCount: (json['reviews_count'] is num)
+          ? (json['reviews_count'] as num).toInt()
+          : 0,
+    );
+  }
 }
 
 class BuyerProfile {
   final String id;
   final String name;
   final String phone;
+  final String email;
+  final String photoUrl;
   final String businessName;
   final String businessType;
   final String district;
   final String area;
   final String address;
   final String tradeInfo;
+  final String tradeLicenseUrl;
+  final String nidFrontUrl;
+  final String nidBackUrl;
   final VerificationStatus verificationStatus;
   final int completedOrders;
   final double rating;
@@ -181,18 +231,63 @@ class BuyerProfile {
     required this.id,
     required this.name,
     required this.phone,
+    this.email = '',
+    this.photoUrl = '',
     required this.businessName,
     required this.businessType,
     required this.district,
     required this.area,
     required this.address,
     this.tradeInfo = 'TR-DH-892182',
+    this.tradeLicenseUrl = '',
+    this.nidFrontUrl = '',
+    this.nidBackUrl = '',
     this.verificationStatus = VerificationStatus.verified,
     this.completedOrders = 24,
     this.rating = 4.9,
     this.reviewsCount = 30,
     this.paymentReliability = 98,
   });
+
+  factory BuyerProfile.fromBackendMap(Map<String, dynamic> json) {
+    VerificationStatus vStatus = VerificationStatus.verified;
+    final rawStatus = (json['verification_status'] ?? '').toString().toLowerCase();
+    if (rawStatus == 'pending') {
+      vStatus = VerificationStatus.pending;
+    } else if (rawStatus == 'rejected') {
+      vStatus = VerificationStatus.rejected;
+    }
+
+    return BuyerProfile(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'পাইকার/আড়তদার',
+      phone: json['phone']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      photoUrl: json['photo_url']?.toString() ?? '',
+      businessName: json['business_name']?.toString() ?? '',
+      businessType: json['business_type']?.toString() ?? '',
+      district: json['district']?.toString() ?? 'ঢাকা',
+      area: json['arot_location']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      tradeInfo: json['trade_info']?.toString() ?? '',
+      tradeLicenseUrl: json['trade_license_url']?.toString() ?? '',
+      nidFrontUrl: json['nid_front_url']?.toString() ?? '',
+      nidBackUrl: json['nid_back_url']?.toString() ?? '',
+      verificationStatus: vStatus,
+      completedOrders: (json['completed_orders'] is num)
+          ? (json['completed_orders'] as num).toInt()
+          : 0,
+      rating: (json['rating'] is num)
+          ? (json['rating'] as num).toDouble()
+          : 5.0,
+      reviewsCount: (json['reviews_count'] is num)
+          ? (json['reviews_count'] as num).toInt()
+          : 0,
+      paymentReliability: (json['payment_reliability'] is num)
+          ? (json['payment_reliability'] as num).toInt()
+          : 100,
+    );
+  }
 }
 
 class ProductListing {

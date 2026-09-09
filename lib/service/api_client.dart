@@ -235,4 +235,69 @@ class ApiClient {
       };
     }
   }
+
+  /// Fetch User Profile Data from Backend
+  static Future<Map<String, dynamic>> fetchUserProfile({
+    String? token,
+    String? userId,
+    String? phone,
+    String? email,
+  }) async {
+    Uri uri;
+    final Map<String, String> headers = {
+      "Content-Type": "application/json",
+    };
+
+    if (token != null && token.trim().isNotEmpty) {
+      uri = Uri.parse(ApiUrl.profile);
+      headers["Authorization"] = "Bearer ${token.trim()}";
+    } else if (userId != null && userId.trim().isNotEmpty) {
+      uri = Uri.parse("${ApiUrl.profile}/${userId.trim()}");
+    } else if ((phone != null && phone.trim().isNotEmpty) || (email != null && email.trim().isNotEmpty)) {
+      final queryParams = <String, String>{};
+      if (phone != null && phone.trim().isNotEmpty) queryParams['phone'] = phone.trim();
+      if (email != null && email.trim().isNotEmpty) queryParams['email'] = email.trim().toLowerCase();
+      uri = Uri.parse(ApiUrl.userByIdentifier).replace(queryParameters: queryParams);
+    } else {
+      return {
+        "success": false,
+        "message": "প্রোফাইল শনাক্তকরণের কোনো তথ্য দেওয়া হয়নি।"
+      };
+    }
+
+    debugPrint('==================================================');
+    debugPrint('🚀 [API REQ] GET User Profile: $uri');
+
+    try {
+      final response = await http.get(uri, headers: headers);
+
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+      debugPrint('📄 [API RES BODY]: ${response.body}');
+      debugPrint('==================================================');
+
+      dynamic data;
+      try { data = jsonDecode(response.body); } catch (_) {}
+
+      if (response.statusCode == 200 && data is Map<String, dynamic>) {
+        return {
+          "success": true,
+          "data": data,
+        };
+      } else {
+        final msg = _extractErrorMessage(data, "প্রোফাইল তথ্য পেতে সমস্যা হয়েছে।");
+        return {
+          "success": false,
+          "message": msg,
+        };
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ [API ERROR - FETCH USER PROFILE]: $e');
+      debugPrint('📜 [STACK TRACE]: $stackTrace');
+      debugPrint('==================================================');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি। দয়া করে ইন্টারনেট সংযোগ চেক করুন।"
+      };
+    }
+  }
 }

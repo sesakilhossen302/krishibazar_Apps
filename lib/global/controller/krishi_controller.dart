@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../Model/krishi_models.dart';
+import '../../service/api_client.dart';
+import '../../helper/shared_pref/shared_pref_helper.dart';
 
 class KrishiController extends ChangeNotifier {
   UserRole _currentRole = UserRole.farmer;
@@ -29,6 +31,57 @@ class KrishiController extends ChangeNotifier {
 
   late BuyerProfile _currentBuyer;
   BuyerProfile get currentBuyer => _currentBuyer;
+
+  bool isProfileLoading = false;
+
+  void updateCurrentFarmer(FarmerProfile profile) {
+    _currentFarmer = profile;
+    notifyListeners();
+  }
+
+  void updateCurrentBuyer(BuyerProfile profile) {
+    _currentBuyer = profile;
+    notifyListeners();
+  }
+
+  Future<void> loadProfileFromBackend() async {
+    final isLoggedIn = await SharedPrefHelper.isLoggedIn();
+    if (!isLoggedIn) return;
+
+    final token = await SharedPrefHelper.getToken();
+    final userId = await SharedPrefHelper.getUserId();
+    final phone = await SharedPrefHelper.getUserPhone();
+    final email = await SharedPrefHelper.getUserEmail();
+    final role = await SharedPrefHelper.getUserRole();
+
+    isProfileLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await ApiClient.fetchUserProfile(
+        token: token.isNotEmpty ? token : null,
+        userId: userId.isNotEmpty ? userId : null,
+        phone: phone.isNotEmpty ? phone : null,
+        email: email.isNotEmpty ? email : null,
+      );
+
+      if (res["success"] == true && res["data"] is Map<String, dynamic>) {
+        final data = res["data"] as Map<String, dynamic>;
+        final userRole = (data["role"] ?? role).toString().toLowerCase();
+
+        if (userRole == "farmer") {
+          _currentFarmer = FarmerProfile.fromBackendMap(data);
+        } else {
+          _currentBuyer = BuyerProfile.fromBackendMap(data);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading profile from backend: $e");
+    } finally {
+      isProfileLoading = false;
+      notifyListeners();
+    }
+  }
 
   List<FarmerProfile> _farmers = [];
   List<FarmerProfile> get farmers => _farmers;
@@ -80,6 +133,7 @@ class KrishiController extends ChangeNotifier {
 
   KrishiController() {
     _initData();
+    loadProfileFromBackend();
   }
 
   void _initData() {

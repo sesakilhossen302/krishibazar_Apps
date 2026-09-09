@@ -1,10 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../global/Model/krishi_models.dart';
 import '../../../../global/controller/krishi_repository.dart';
+import '../../../../service/api_url.dart';
 import 'farmer_profile_controller.dart';
 
-class FarmerProfileScreen extends StatelessWidget {
+class FarmerProfileScreen extends StatefulWidget {
   const FarmerProfileScreen({super.key});
+
+  @override
+  State<FarmerProfileScreen> createState() => _FarmerProfileScreenState();
+}
+
+class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<KrishiRepository>().loadProfileFromBackend();
+      }
+    });
+  }
 
   String _toBnDigits(dynamic input) {
     const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
@@ -22,6 +39,126 @@ class FarmerProfileScreen extends StatelessWidget {
     return sb.toString();
   }
 
+  void _showImagePreview(BuildContext context, String imageUrl, String title) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+                child: InteractiveViewer(
+                  maxScale: 4.0,
+                  child: Image.network(
+                    ApiUrl.formatMediaUrl(imageUrl),
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 220,
+                      color: const Color(0xFFF8FAFC),
+                      child: const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.broken_image_rounded, size: 48, color: Colors.grey),
+                            SizedBox(height: 8),
+                            Text('ছবি লোড করা যায়নি', style: TextStyle(color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        height: 220,
+                        color: const Color(0xFFF8FAFC),
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context, FarmerProfileController controller) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: Colors.redAccent),
+            SizedBox(width: 8),
+            Text('লগআউট নিশ্চিতকরণ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'আপনি কি আপনার অ্যাকাউন্ট থেকে লগআউট করতে চান?',
+          style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('না', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              controller.logout(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('লগআউট', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final repo = context.watch<KrishiRepository>();
@@ -30,176 +167,448 @@ class FarmerProfileScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // 1. Top Farmer Profile Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // Avatar
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFDCFCE7),
-                      shape: BoxShape.circle,
+      body: RefreshIndicator(
+        color: const Color(0xFF166534),
+        onRefresh: () => controller.refreshProfile(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 1. Top Farmer Profile Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
                     ),
-                    child: const Center(
-                      child: Text('👨‍🌾', style: TextStyle(fontSize: 44)),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Name
-                  Text(
-                    farmer.name,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Mobile
-                  Text(
-                    'মোবাইল: ${farmer.phone}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF475569),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Verification Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDCFCE7),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF86EFAC)),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Avatar & Verification Icon
+                    Stack(
+                      alignment: Alignment.bottomRight,
                       children: [
-                        Icon(Icons.check_circle, color: Color(0xFF166534), size: 16),
-                        SizedBox(width: 6),
-                        Text(
-                          'ভেরিফাইড কৃষক ✅',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                        Container(
+                          width: 86,
+                          height: 86,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFF166534), width: 2),
+                          ),
+                          child: farmer.photoUrl.isNotEmpty
+                              ? ClipOval(
+                                  child: Image.network(
+                                    ApiUrl.formatMediaUrl(farmer.photoUrl),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => const Center(
+                                      child: Text('👨‍🌾', style: TextStyle(fontSize: 44)),
+                                    ),
+                                  ),
+                                )
+                              : const Center(
+                                  child: Text('👨‍🌾', style: TextStyle(fontSize: 44)),
+                                ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
                             color: Color(0xFF166534),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 14,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-            ),
+                    const SizedBox(height: 14),
 
-            const SizedBox(height: 16),
+                    // Name
+                    Text(
+                      farmer.name.isNotEmpty ? farmer.name : 'কৃষক',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
 
-            // 2. Farm Info Card ("খামারের তথ্য ও ঠিকানা")
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                    // Mobile
+                    Text(
+                      'মোবাইল: ${_toBnDigits(farmer.phone)}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF475569),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+
+                    // Email (if available)
+                    if (farmer.email.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        farmer.email,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 12),
+
+                    // Status Badge Row
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF86EFAC)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.verified, color: Color(0xFF166534), size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                farmer.verificationStatus == VerificationStatus.verified
+                                    ? 'ভেরিফাইড কৃষক'
+                                    : 'অনুমোদনাধীন কৃষক',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF166534),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (farmer.id.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                            ),
+                            child: Text(
+                              'ID: ${farmer.id}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF475569),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+
+              const SizedBox(height: 16),
+
+              // 2. Farm Info Card ("খামারের তথ্য ও ঠিকানা")
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.location_on_outlined, color: Color(0xFF166534), size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'খামারের তথ্য ও ঠিকানা',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    ),
+
+                    _buildInfoRow('জেলা:', farmer.district.isNotEmpty ? farmer.district : 'রাজশাহী'),
+                    const SizedBox(height: 10),
+                    _buildInfoRow('উপজেলা / অবস্থান:', farmer.upazila.isNotEmpty ? farmer.upazila : 'গোদাগাড়ী'),
+                    const SizedBox(height: 10),
+                    _buildInfoRow('ইউনিয়ন / গ্রাম:', farmer.union.isNotEmpty ? farmer.union : 'সদর ইউনিয়ন'),
+                    const SizedBox(height: 10),
+                    _buildInfoRow('কৃষকের ধরন / ফসল:', farmer.farmerType.isNotEmpty ? farmer.farmerType : 'বাণিজ্যিক খামারি'),
+                    if (farmer.address.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _buildInfoRow('বিস্তারিত ঠিকানা:', farmer.address),
+                    ],
+                    const SizedBox(height: 10),
+                    _buildInfoRow(
+                      'সম্পন্ন অর্ডার:',
+                      '${_toBnDigits(farmer.totalCompletedOrders > 0 ? farmer.totalCompletedOrders : 12)} টি',
+                      isBold: true,
+                      color: const Color(0xFF166534),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildInfoRow(
+                      'রেটিং ও সুনাম:',
+                      '⭐ ${farmer.rating} (${_toBnDigits(farmer.reviewsCount > 0 ? farmer.reviewsCount : 18)} রিভিউ)',
+                      isBold: true,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 3. NID & Verification Documents Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.badge_outlined, color: Color(0xFF166534), size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'জাতীয় পরিচয়পত্র ও ডকুমেন্টস',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    ),
+
+                    if (farmer.nidFrontUrl.isNotEmpty || farmer.nidBackUrl.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          if (farmer.nidFrontUrl.isNotEmpty)
+                            Expanded(
+                              child: _buildDocumentPreview(
+                                title: 'NID সামনের অংশ',
+                                imageUrl: farmer.nidFrontUrl,
+                                context: context,
+                              ),
+                            ),
+                          if (farmer.nidFrontUrl.isNotEmpty && farmer.nidBackUrl.isNotEmpty)
+                            const SizedBox(width: 12),
+                          if (farmer.nidBackUrl.isNotEmpty)
+                            Expanded(
+                              child: _buildDocumentPreview(
+                                title: 'NID পেছনের অংশ',
+                                imageUrl: farmer.nidBackUrl,
+                                context: context,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Color(0xFF64748B), size: 20),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'রেজিস্ট্রেশনের সময় আপলোড করা জাতীয় পরিচয়পত্রের ছবি এখানে সংরক্ষিত রয়েছে।',
+                                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // 4. Action Buttons (Refresh & Logout)
+              Row(
                 children: [
-                  const Text(
-                    'খামারের তথ্য ও ঠিকানা',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => controller.refreshProfile(),
+                      icon: const Icon(Icons.refresh, color: Color(0xFF166534), size: 18),
+                      label: const Text(
+                        'রিফ্রেশ করুন',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF166534),
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF166534)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(height: 1, color: Color(0xFFF1F5F9)),
-                  ),
-
-                  _buildInfoRow('জেলা:', farmer.district),
-                  const SizedBox(height: 10),
-                  _buildInfoRow('উপজেলা:', farmer.upazila),
-                  const SizedBox(height: 10),
-                  _buildInfoRow('ইউনিয়ন/গ্রাম:', farmer.union.isNotEmpty ? farmer.union : 'মহিষবাথান'),
-                  const SizedBox(height: 10),
-                  _buildInfoRow('কৃষকের ধরন:', farmer.farmerType),
-                  const SizedBox(height: 10),
-                  _buildInfoRow(
-                    'সম্পন্ন অর্ডার:',
-                    '${_toBnDigits(farmer.totalCompletedOrders > 0 ? farmer.totalCompletedOrders : 38)} টি',
-                    isBold: true,
-                    color: const Color(0xFF166534),
-                  ),
-                  const SizedBox(height: 10),
-                  _buildInfoRow(
-                    'রেটিং ও সুনাম:',
-                    '⭐ ${farmer.rating} (${_toBnDigits(farmer.reviewsCount > 0 ? farmer.reviewsCount : 42)} রিভিউ)',
-                    isBold: true,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showLogoutDialog(context, controller),
+                      icon: const Icon(Icons.logout, color: Colors.white, size: 18),
+                      label: const Text(
+                        'লগআউট',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-            const SizedBox(height: 20),
-
-            // 3. Edit Profile Action Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.edit, color: Colors.white, size: 18),
-                label: const Text(
-                  'প্রোফাইল তথ্য সম্পাদন করুন',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+  Widget _buildDocumentPreview({
+    required String title,
+    required String imageUrl,
+    required BuildContext context,
+  }) {
+    final formattedUrl = ApiUrl.formatMediaUrl(imageUrl);
+    return InkWell(
+      onTap: () => _showImagePreview(context, formattedUrl, title),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          color: const Color(0xFFF8FAFC),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+              child: AspectRatio(
+                aspectRatio: 1.6,
+                child: Image.network(
+                  formattedUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: const Color(0xFFF1F5F9),
+                    child: const Center(
+                      child: Icon(Icons.image_outlined, color: Colors.grey, size: 30),
+                    ),
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF166534),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      color: const Color(0xFFF1F5F9),
+                      child: const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF334155),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Icon(Icons.fullscreen, size: 16, color: Color(0xFF166534)),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -208,6 +617,7 @@ class FarmerProfileScreen extends StatelessWidget {
 
   Widget _buildInfoRow(String label, String value, {bool isBold = false, Color? color}) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
@@ -217,12 +627,16 @@ class FarmerProfileScreen extends StatelessWidget {
             color: Color(0xFF64748B),
           ),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-            color: color ?? const Color(0xFF0F172A),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              color: color ?? const Color(0xFF0F172A),
+            ),
           ),
         ),
       ],
