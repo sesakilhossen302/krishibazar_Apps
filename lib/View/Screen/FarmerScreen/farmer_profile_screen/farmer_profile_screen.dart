@@ -42,19 +42,25 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
   }
 
   void _showImagePreview(BuildContext context, String imageUrl, String title) {
+    if (imageUrl.trim().isEmpty) return;
+    final formattedUrl = ApiUrl.formatMediaUrl(imageUrl);
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.82,
+            maxWidth: 520,
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 20,
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 24,
                 offset: const Offset(0, 10),
               ),
             ],
@@ -63,57 +69,80 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F172A),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(Icons.zoom_in_rounded, color: Color(0xFF166534), size: 22),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F172A),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+                      icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
                 ),
               ),
               const Divider(height: 1, color: Color(0xFFF1F5F9)),
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
-                child: InteractiveViewer(
-                  maxScale: 4.0,
-                  child: Image.network(
-                    ApiUrl.formatMediaUrl(imageUrl),
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: 220,
-                      color: const Color(0xFFF8FAFC),
-                      child: const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.broken_image_rounded, size: 48, color: Colors.grey),
-                            SizedBox(height: 8),
-                            Text('ছবি লোড করা যায়নি', style: TextStyle(color: Colors.grey)),
-                          ],
+              Flexible(
+                child: Container(
+                  width: double.infinity,
+                  color: const Color(0xFF0F172A),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                    child: InteractiveViewer(
+                      minScale: 0.5,
+                      maxScale: 4.0,
+                      child: Center(
+                        child: Image.network(
+                          formattedUrl,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            height: 240,
+                            color: const Color(0xFFF8FAFC),
+                            child: const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.broken_image_rounded, size: 48, color: Colors.grey),
+                                  SizedBox(height: 8),
+                                  Text('ছবি লোড করা যায়নি', style: TextStyle(color: Colors.grey)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(40),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        height: 220,
-                        color: const Color(0xFFF8FAFC),
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      );
-                    },
                   ),
                 ),
               ),
