@@ -13,7 +13,7 @@ class ApiUrl {
   /// null = স্মার্ট অটোমেটিক (পিসিতে ডেভেলপমেন্টের সময় লোকাল সার্ভার, আর APK বিল্ডের সময় পাবলিক সার্ভার)
   /// true = সবসময় পাবলিক সার্ভার
   /// false = সবসময় লোকাল সার্ভার
-  static const bool? forcePublicServer = null;
+  static const bool forcePublicServer = false;
 
   static bool get isUsingPublicServer {
     if (forcePublicServer != null) return forcePublicServer!;

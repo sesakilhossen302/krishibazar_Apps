@@ -42,19 +42,34 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final videoUrl = widget.product.videoUrl;
     if (videoUrl == null || videoUrl.trim().isEmpty) return;
 
+    _videoController?.dispose();
+    _videoController = null;
+    _isVideoInitialized = false;
+    _isVideoError = false;
+
     try {
       final raw = videoUrl.trim();
-      if (!kIsWeb && _isLocalFilePath(raw) && File(raw).existsSync()) {
-        _videoController = VideoPlayerController.file(File(raw));
+      final isLocal = !kIsWeb && _isLocalFilePath(raw) && File(raw).existsSync();
+
+      if (isLocal) {
+        _videoController = VideoPlayerController.file(
+          File(raw),
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
       } else {
         final formattedUrl = ApiUrl.formatMediaUrl(raw);
-        _videoController = VideoPlayerController.networkUrl(Uri.parse(formattedUrl));
+        debugPrint('🎬 [ProductDetailScreen] Initializing video: $formattedUrl');
+        _videoController = VideoPlayerController.networkUrl(
+          Uri.parse(formattedUrl),
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
       }
 
       _videoController!.initialize().then((_) {
         if (mounted) {
           setState(() {
             _isVideoInitialized = true;
+            _isVideoError = false;
           });
         }
       }).catchError((error) {
@@ -78,12 +93,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       });
     } catch (e) {
       debugPrint('Error creating video controller: $e');
-      _isVideoError = true;
+      if (mounted) {
+        setState(() {
+          _isVideoError = true;
+        });
+      }
     }
   }
 
   bool _isLocalFilePath(String path) {
-    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('/uploads/')) {
+    if (path.startsWith('http://') ||
+        path.startsWith('https://') ||
+        path.startsWith('/uploads/') ||
+        path.startsWith('uploads/')) {
       return false;
     }
     return path.startsWith('/') || path.contains(':\\') || path.contains(':/');
