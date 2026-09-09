@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../global/Model/krishi_models.dart';
 import '../../../global/controller/krishi_repository.dart';
-import '../../../service/api_url.dart';
+import '../../Widgegt/app_media_image.dart';
 
 class DemandDetailScreen extends StatelessWidget {
   final BuyerDemand demand;
@@ -29,9 +29,6 @@ class DemandDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final repo = context.watch<KrishiRepository>();
     final isFarmer = repo.currentRole == UserRole.farmer;
-    final photoUrl = demand.buyerPhotoUrl.isNotEmpty
-        ? ApiUrl.formatMediaUrl(demand.buyerPhotoUrl)
-        : '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -202,11 +199,13 @@ class DemandDetailScreen extends StatelessWidget {
                           border: Border.all(color: const Color(0xFF166534), width: 2),
                         ),
                         clipBehavior: Clip.antiAlias,
-                        child: photoUrl.isNotEmpty
-                            ? Image.network(
-                                photoUrl,
+                        child: demand.buyerPhotoUrl.trim().isNotEmpty
+                            ? AppMediaImage(
+                                url: demand.buyerPhotoUrl,
+                                width: 58,
+                                height: 58,
                                 fit: BoxFit.cover,
-                                errorBuilder: (ctx, err, stack) => const Icon(
+                                placeholderWidget: const Icon(
                                   Icons.storefront_rounded,
                                   color: Color(0xFF166534),
                                   size: 30,
@@ -257,25 +256,34 @@ class DemandDetailScreen extends StatelessWidget {
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                            const SizedBox(height: 3),
+                            const SizedBox(height: 4),
                             Row(
                               children: [
                                 const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF64748B)),
                                 const SizedBox(width: 3),
                                 Text(
                                   demand.buyerDistrict,
-                                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    color: Color(0xFF64748B),
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                                if (demand.buyerPhone.isNotEmpty) ...[
-                                  const SizedBox(width: 10),
-                                  const Icon(Icons.phone_outlined, size: 14, color: Color(0xFF166534)),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    demand.buyerPhone,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF166534),
+                                if (demand.buyerVerified) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFDCFCE7),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text(
+                                      'যাচাইকৃত ক্রেতা ✅',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        color: Color(0xFF166534),
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ],
