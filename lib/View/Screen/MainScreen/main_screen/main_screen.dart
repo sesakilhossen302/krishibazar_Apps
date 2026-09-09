@@ -13,7 +13,6 @@ import '../../Dialogs/account_status_dialog.dart';
 import '../../Dialogs/add_demand_dialog/add_demand_dialog.dart';
 import '../../Dialogs/add_product_dialog/add_product_dialog.dart';
 import '../../Dialogs/buyer_offer_management_dialog/buyer_offer_management_dialog.dart';
-import '../../Dialogs/demand_detail_dialog/demand_detail_dialog.dart';
 import '../../Dialogs/dispute_report_dialog/dispute_report_dialog.dart';
 import '../../Dialogs/farmer_send_offer_dialog/farmer_send_offer_dialog.dart';
 import '../../Dialogs/notifications_dialog/notifications_dialog.dart';
@@ -144,8 +143,6 @@ class MainScreen extends StatelessWidget {
             FarmerSendOfferDialog(demand: repo.activeDemandForOffer!),
           if (repo.activeDemandForOfferManagement != null)
             BuyerOfferManagementDialog(demand: repo.activeDemandForOfferManagement!),
-          if (repo.activeDemandForDetail != null)
-            DemandDetailDialog(demand: repo.activeDemandForDetail!),
           if (repo.activeProductForDetail != null)
             ProductDetailDialog(product: repo.activeProductForDetail!),
           if (repo.activeOrderForDetail != null)

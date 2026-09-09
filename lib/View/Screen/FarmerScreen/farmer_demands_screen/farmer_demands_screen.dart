@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../global/controller/krishi_repository.dart';
 import '../../../Widgegt/Cards/demand_card.dart';
+import '../../DemandDetailScreen/demand_detail_screen.dart';
 import 'farmer_demands_controller.dart';
 
 class FarmerDemandsScreen extends StatelessWidget {
@@ -76,7 +77,14 @@ class FarmerDemandsScreen extends StatelessWidget {
                       final demand = demands[index];
                       return DemandCard(
                         demand: demand,
-                        onTap: () => controller.openDemandDetail(demand),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DemandDetailScreen(demand: demand),
+                            ),
+                          );
+                        },
                         onAction: () => controller.openOffer(demand),
                         actionText: 'আমি দিতে পারব (অফার পাঠান)',
                         isFarmerView: true,

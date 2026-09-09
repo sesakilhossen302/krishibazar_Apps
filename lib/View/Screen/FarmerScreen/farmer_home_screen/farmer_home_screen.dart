@@ -4,6 +4,7 @@ import '../../../../global/Model/krishi_models.dart';
 import '../../../../global/controller/krishi_repository.dart';
 import '../../../../service/api_url.dart';
 import '../../../Widgegt/verification_feedback_banner.dart';
+import '../../DemandDetailScreen/demand_detail_screen.dart';
 import 'farmer_home_controller.dart';
 
 class FarmerHomeScreen extends StatelessWidget {
@@ -343,7 +344,14 @@ class FarmerHomeScreen extends StatelessWidget {
             ...demands.take(3).map(
                   (demand) => _buildDemandCard(
                     demand: demand,
-                    onTap: () => controller.openDemandDetail(demand),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DemandDetailScreen(demand: demand),
+                        ),
+                      );
+                    },
                     onOffer: () => controller.openOffer(demand),
                   ),
                 ),
