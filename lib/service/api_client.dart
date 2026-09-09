@@ -1151,6 +1151,57 @@ class ApiClient {
       };
     }
   }
+
+  /// Accept a farmer's offer
+  static Future<Map<String, dynamic>> acceptOffer(
+    String offerId, {
+    String? token,
+    String? buyerId,
+  }) async {
+    Uri uri = Uri.parse("${ApiUrl.demands}offers/$offerId/accept");
+    if (buyerId != null && buyerId.isNotEmpty) {
+      uri = uri.replace(queryParameters: {'buyer_id': buyerId});
+    }
+
+    final headers = <String, String>{
+      "Content-Type": "application/json",
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    debugPrint('🚀 [API REQ] POST Accept Offer: $uri');
+
+    try {
+      final response = await http.post(uri, headers: headers);
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+      debugPrint('📄 [API RES BODY]: ${response.body}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          "success": true,
+          "message": "অফারটি সফলভাবে গ্রহণ করা হয়েছে!",
+          "data": data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "অফার গ্রহণ করতে সমস্যা হয়েছে।"),
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - ACCEPT OFFER]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+      };
+    }
+  }
 }
 
 

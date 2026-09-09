@@ -810,19 +810,51 @@ class KrishiRepository extends ChangeNotifier {
     return res['success'] == true;
   }
 
-  void acceptOffer(String offerId) {
+  Future<List<FarmerOffer>> fetchOffersForDemand(String demandId) async {
+    try {
+      final res = await ApiClient.fetchOffersForDemand(demandId);
+      if (res['success'] == true && res['data'] is List) {
+        final List list = res['data'];
+        final fetched = list.map((item) => FarmerOffer.fromBackendMap(item)).toList();
+        for (var o in fetched) {
+          _offers.removeWhere((existing) => existing.id == o.id);
+          _offers.add(o);
+        }
+        notifyListeners();
+        return fetched;
+      }
+    } catch (e) {
+      debugPrint('Error fetching offers for demand $demandId: $e');
+    }
+    return _offers.where((o) => o.demandId == demandId).toList();
+  }
+
+  Future<bool> acceptOffer(String offerId) async {
+    final token = await SharedPrefHelper.getToken();
+    final buyerId = _currentBuyer.id;
+
     final offerIndex = _offers.indexWhere((o) => o.id == offerId);
-    if (offerIndex == -1) return;
+    if (offerIndex == -1) return false;
     final offer = _offers[offerIndex];
     final demandIndex = _demands.indexWhere((d) => d.id == offer.demandId);
     final demand = demandIndex != -1 ? _demands[demandIndex] : null;
+
+    final res = await ApiClient.acceptOffer(
+      offerId,
+      token: token.isNotEmpty ? token : null,
+      buyerId: buyerId.isNotEmpty ? buyerId : null,
+    );
 
     final totalAmt = offer.offeredQuantity * offer.pricePerUnit;
     final deposit = totalAmt * 0.20;
 
     final newOrder = MarketplaceOrder(
-      id: 'ord_${DateTime.now().millisecondsSinceEpoch}',
-      orderNumber: 'KB-${1000 + _orders.length + 1}',
+      id: (res['data'] is Map && res['data']['id'] != null)
+          ? res['data']['id'].toString()
+          : 'ord_${DateTime.now().millisecondsSinceEpoch}',
+      orderNumber: (res['data'] is Map && res['data']['order_number'] != null)
+          ? res['data']['order_number'].toString()
+          : 'KB-${1000 + _orders.length + 1}',
       demandId: offer.demandId,
       offerId: offer.id,
       buyerId: _currentBuyer.id,
@@ -867,6 +899,8 @@ class KrishiRepository extends ChangeNotifier {
       farmerName: offer.farmerName,
       farmerPhone: offer.farmerPhone,
       farmerLocation: offer.farmerLocation,
+      farmerVerified: offer.farmerVerified,
+      farmerPhotoUrl: offer.farmerPhotoUrl,
       offeredQuantity: offer.offeredQuantity,
       unit: offer.unit,
       pricePerUnit: offer.pricePerUnit,
@@ -878,8 +912,10 @@ class KrishiRepository extends ChangeNotifier {
     );
 
     closeDemandOfferManagement();
-    snackbarMessage = StaticString.offerAcceptedSuccess;
+    snackbarMessage = res['message'] ?? StaticString.offerAcceptedSuccess;
     notifyListeners();
+    fetchDemandsFromBackend();
+    return res['success'] == true;
   }
 
   void payDeposit(String orderId) {

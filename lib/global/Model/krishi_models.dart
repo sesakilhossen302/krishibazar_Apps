@@ -776,6 +776,7 @@ class FarmerOffer {
   final String farmerPhone;
   final String farmerLocation;
   final bool farmerVerified;
+  final String farmerPhotoUrl;
   final double offeredQuantity;
   final ProductUnit unit;
   final double pricePerUnit;
@@ -793,6 +794,7 @@ class FarmerOffer {
     required this.farmerPhone,
     required this.farmerLocation,
     this.farmerVerified = true,
+    this.farmerPhotoUrl = '',
     required this.offeredQuantity,
     required this.unit,
     required this.pricePerUnit,
@@ -839,6 +841,7 @@ class FarmerOffer {
       farmerPhone: (json['farmer_phone'] ?? '').toString(),
       farmerLocation: (json['farmer_location'] ?? '').toString(),
       farmerVerified: json['farmer_verified'] == true || json['farmer_verified'] == null,
+      farmerPhotoUrl: (json['farmer_photo_url'] ?? '').toString(),
       offeredQuantity: (json['offered_quantity'] is num)
           ? (json['offered_quantity'] as num).toDouble()
           : (double.tryParse(json['offered_quantity']?.toString() ?? '') ?? 0.0),
