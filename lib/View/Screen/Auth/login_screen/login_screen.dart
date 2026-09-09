@@ -123,13 +123,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           isPassword: true,
                           prefixIcon: Icons.lock_outline,
                         ),
-                        if (_controller.errorMessage != null) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            _controller.errorMessage!,
-                            style: const TextStyle(color: Colors.red, fontSize: 13),
-                          ),
-                        ],
                         const SizedBox(height: 24),
                         CustomButton(
                           text: _controller.isLoading ? StaticString.loading : StaticString.loginButton,

@@ -219,21 +219,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ],
 
-                  if (_controller.errorMessage != null) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade200),
-                      ),
-                      child: Text(
-                        _controller.errorMessage!,
-                        style: const TextStyle(color: Colors.red, fontSize: 13),
-                      ),
-                    ),
-                  ],
                   const SizedBox(height: 28),
 
                   CustomButton(

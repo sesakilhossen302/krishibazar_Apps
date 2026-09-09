@@ -42,6 +42,19 @@ class RegisterController extends ChangeNotifier {
     formData = RegistrationFormData(role: role);
   }
 
+  void _showSnackBar(BuildContext context, String message, {bool isError = true}) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: Colors.white)),
+        backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   /// Pick & Upload NID Front Image via Camera/Gallery
   Future<void> pickNidFront(BuildContext context) async {
     final File? file = await ImagePickerDialog.showImageSourceSelector(context);
@@ -57,8 +70,13 @@ class RegisterController extends ChangeNotifier {
     if (res["success"] == true) {
       nidFrontUrl = res["full_url"];
       formData.nidFrontPath = res["full_url"];
+      if (context.mounted) {
+        _showSnackBar(context, "NID কার্ডের সামনের পাশের ছবি আপলোড সফল হয়েছে! ✅", isError: false);
+      }
     } else {
-      errorMessage = res["message"];
+      if (context.mounted) {
+        _showSnackBar(context, res["message"] ?? "ছবি আপলোড করা যায়নি।");
+      }
     }
     notifyListeners();
   }
@@ -78,8 +96,13 @@ class RegisterController extends ChangeNotifier {
     if (res["success"] == true) {
       nidBackUrl = res["full_url"];
       formData.nidBackPath = res["full_url"];
+      if (context.mounted) {
+        _showSnackBar(context, "NID কার্ডের পেছনের পাশের ছবি আপলোড সফল হয়েছে! ✅", isError: false);
+      }
     } else {
-      errorMessage = res["message"];
+      if (context.mounted) {
+        _showSnackBar(context, res["message"] ?? "ছবি আপলোড করা যায়নি।");
+      }
     }
     notifyListeners();
   }
@@ -99,8 +122,13 @@ class RegisterController extends ChangeNotifier {
     if (res["success"] == true) {
       tradeLicenseUrl = res["full_url"];
       formData.tradeLicensePath = res["full_url"];
+      if (context.mounted) {
+        _showSnackBar(context, "ট্রেড লাইসেন্সের ছবি আপলোড সফল হয়েছে! ✅", isError: false);
+      }
     } else {
-      errorMessage = res["message"];
+      if (context.mounted) {
+        _showSnackBar(context, res["message"] ?? "ছবি আপলোড করা যায়নি।");
+      }
     }
     notifyListeners();
   }
@@ -113,19 +141,16 @@ class RegisterController extends ChangeNotifier {
     final password = passwordController.text.trim();
 
     if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
-      errorMessage = "অনুগ্রহ করে নাম, ফোন, জিমেইল ও পাসওয়ার্ড পূরণ করুন।";
-      notifyListeners();
+      _showSnackBar(context, "অনুগ্রহ করে নাম, ফোন, জিমেইল ও পাসওয়ার্ড পূরণ করুন।");
       return;
     }
 
     if (formData.role == UserRole.buyer && shopNameController.text.trim().isEmpty) {
-      errorMessage = "পাইকার সাইনআপের জন্য ব্যবসা/আড়তের নাম প্রদান করুন।";
-      notifyListeners();
+      _showSnackBar(context, "পাইকার সাইনআপের জন্য ব্যবসা/আড়তের নাম প্রদান করুন।");
       return;
     }
 
     isLoading = true;
-    errorMessage = null;
     notifyListeners();
 
     // 1. Send OTP to Gmail
@@ -141,11 +166,10 @@ class RegisterController extends ChangeNotifier {
 
     if (otpRes["success"] == true) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(otpRes["message"] ?? "আপনার জিমেইলে ওটিপি কোড পাঠানো হয়েছে।"),
-            backgroundColor: Colors.green,
-          ),
+        _showSnackBar(
+          context,
+          otpRes["message"] ?? "আপনার জিমেইলে ওটিপি কোড পাঠানো হয়েছে।",
+          isError: false,
         );
 
         Navigator.pushNamed(
@@ -169,8 +193,9 @@ class RegisterController extends ChangeNotifier {
         );
       }
     } else {
-      errorMessage = otpRes["message"] ?? "ওটিপি পাঠাতে সমস্যা হয়েছে।";
-      notifyListeners();
+      if (context.mounted) {
+        _showSnackBar(context, otpRes["message"] ?? "ওটিপি পাঠাতে ব্যর্থ হয়েছে।");
+      }
     }
   }
 

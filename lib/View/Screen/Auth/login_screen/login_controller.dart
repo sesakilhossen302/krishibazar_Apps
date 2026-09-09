@@ -15,18 +15,29 @@ class LoginController extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
 
+  void _showSnackBar(BuildContext context, String message, {bool isError = true}) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: Colors.white)),
+        backgroundColor: isError ? Colors.red.shade700 : AppColors.primaryGreen,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   Future<void> onLoginClick(BuildContext context) async {
     final identifier = emailController.text.trim();
     final password = passwordController.text.trim();
 
     if (identifier.isEmpty || password.isEmpty) {
-      errorMessage = "ফোন নম্বর/ইমেইল এবং পাসওয়ার্ড প্রদান করুন।";
-      notifyListeners();
+      _showSnackBar(context, "ফোন নম্বর/ইমেইল এবং পাসওয়ার্ড প্রদান করুন।");
       return;
     }
 
     isLoading = true;
-    errorMessage = null;
     notifyListeners();
 
     final res = await ApiClient.login(
@@ -53,18 +64,18 @@ class LoginController extends ChangeNotifier {
         context.read<KrishiController>().switchRole(roleEnum);
         context.read<KrishiRepository>().switchRole(roleEnum);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("স্বাগতম ${res['name'] ?? ''}! আপনার অ্যাকাউন্টে সফলভাবে প্রবেশ করেছেন। 🎉"),
-            backgroundColor: AppColors.primaryGreen,
-          ),
+        _showSnackBar(
+          context,
+          "স্বাগতম ${res['name'] ?? ''}! আপনার অ্যাকাউন্টে সফলভাবে প্রবেশ করেছেন। 🎉",
+          isError: false,
         );
 
         Navigator.pushReplacementNamed(context, AppRoute.mainScreen);
       }
     } else {
-      errorMessage = res["message"] ?? "ফোন নম্বর বা পাসওয়ার্ড ভুল প্রদান করা হয়েছে।";
-      notifyListeners();
+      if (context.mounted) {
+        _showSnackBar(context, res["message"] ?? "ফোন নম্বর বা পাসওয়ার্ড ভুল প্রদান করা হয়েছে।");
+      }
     }
   }
 

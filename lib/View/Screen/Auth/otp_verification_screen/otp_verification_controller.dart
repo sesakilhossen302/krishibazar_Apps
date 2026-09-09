@@ -13,19 +13,30 @@ class OtpVerificationController extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
 
+  void _showSnackBar(BuildContext context, String message, {bool isError = true}) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: Colors.white)),
+        backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   Future<void> verifyOtpAndSignup({
     required BuildContext context,
     required Map<String, dynamic> signupArgs,
   }) async {
     final String pin = pinController.text.trim();
     if (pin.isEmpty) {
-      errorMessage = "অনুগ্রহ করে জিমেইলে প্রাপ্ত ৬ সংখ্যার ওটিপি কোড লিখুন।";
-      notifyListeners();
+      _showSnackBar(context, "অনুগ্রহ করে জিমেইলে প্রাপ্ত ৬ সংখ্যার ওটিপি কোড লিখুন।");
       return;
     }
 
     isLoading = true;
-    errorMessage = null;
     notifyListeners();
 
     final UserRole role = signupArgs['role'] ?? UserRole.farmer;
@@ -65,11 +76,10 @@ class OtpVerificationController extends ChangeNotifier {
         context.read<KrishiController>().switchRole(role);
         context.read<KrishiRepository>().switchRole(role);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("অ্যাকাউন্ট ভেরিফিকেশন ও রেজিস্ট্রেশন সফল হয়েছে! 🎉"),
-            backgroundColor: Colors.green,
-          ),
+        _showSnackBar(
+          context,
+          "অ্যাকাউন্ট ভেরিফিকেশন ও রেজিস্ট্রেশন সফল হয়েছে! 🎉",
+          isError: false,
         );
 
         Navigator.pushNamedAndRemoveUntil(
@@ -79,8 +89,9 @@ class OtpVerificationController extends ChangeNotifier {
         );
       }
     } else {
-      errorMessage = res["message"] ?? "ওটিপি মিলছে না বা মেয়াদ শেষ হয়ে গেছে।";
-      notifyListeners();
+      if (context.mounted) {
+        _showSnackBar(context, res["message"] ?? "ওটিপি মিলছে না বা মেয়াদ শেষ হয়ে গেছে।");
+      }
     }
   }
 

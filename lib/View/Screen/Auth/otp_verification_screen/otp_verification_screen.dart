@@ -130,13 +130,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           keyboardType: TextInputType.number,
                           prefixIcon: Icons.security,
                         ),
-                        if (_controller.errorMessage != null) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            _controller.errorMessage!,
-                            style: const TextStyle(color: Colors.red, fontSize: 13),
-                          ),
-                        ],
                         const SizedBox(height: 24),
                         CustomButton(
                           text: _controller.isLoading ? 'ভেরিফাই করা হচ্ছে...' : 'ওটিপি ভেরিফাই ও একাউন্ট খুলুন',
