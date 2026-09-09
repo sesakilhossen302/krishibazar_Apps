@@ -2,20 +2,33 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class ApiUrl {
-  /// পাবলিক টানেল লিংক: ক্লায়েন্ট বা অন্য ফোনে টেস্ট APK দেওয়ার জন্য
-  /// পিসিতে সার্ভার চালু থাকা অবস্থায় যেকোনো ফোন থেকে কাজ করবে
+  /// ক্লায়েন্ট বা অন্য ফোনে টেস্ট APK বিল্ড করার জন্য পাবলিক টানেল লিংক
   static const String publicServerUrl = "https://configured-hits-tsunami-bikini.trycloudflare.com";
 
-  /// true থাকলে ক্লায়েন্টের ফোন/অন্য যেকোনো ফোনে APK কাজ করবে
-  static const bool usePublicServer = true;
+  /// লোকাল সার্ভার লিংক (আপনার নিজের পিসিতে কাজ করার জন্য)
+  static const String localServerUrl = "http://127.0.0.1:8000";
+  static const String emulatorServerUrl = "http://10.0.2.2:8000";
+
+  /// মোড সিলেক্টর:
+  /// null = স্মার্ট অটোমেটিক (পিসিতে ডেভেলপমেন্টের সময় লোকাল সার্ভার, আর APK বিল্ডের সময় পাবলিক সার্ভার)
+  /// true = সবসময় পাবলিক সার্ভার
+  /// false = সবসময় লোকাল সার্ভার
+  static const bool? forcePublicServer = null;
+
+  static bool get isUsingPublicServer {
+    if (forcePublicServer != null) return forcePublicServer!;
+    // আপনি যখন APK বিল্ড করে অন্যকে দিবেন (Release mode), তখন অটো পাবলিক সার্ভার কাজ করবে
+    // আর পিসিতে কোডিং/টেস্ট করার সময় (Debug mode) লোকাল 127.0.0.1 / 10.0.2.2 কাজ করবে
+    return kReleaseMode;
+  }
 
   static String get serverBaseUrl {
-    if (usePublicServer && publicServerUrl.isNotEmpty) {
+    if (isUsingPublicServer && publicServerUrl.isNotEmpty) {
       return publicServerUrl;
     }
-    if (kIsWeb) return "http://127.0.0.1:8000";
-    if (!kIsWeb && Platform.isAndroid) return "http://10.0.2.2:8000";
-    return "http://127.0.0.1:8000";
+    if (kIsWeb) return localServerUrl;
+    if (!kIsWeb && Platform.isAndroid) return emulatorServerUrl;
+    return localServerUrl;
   }
 
   static String get baseUrl => "$serverBaseUrl/api/v1";
