@@ -5,6 +5,27 @@ import 'package:http/http.dart' as http;
 import 'api_url.dart';
 
 class ApiClient {
+  /// Extract clean message from FastAPI response body or error
+  static String _extractErrorMessage(dynamic data, String defaultMsg) {
+    if (data is Map) {
+      if (data["detail"] != null) {
+        if (data["detail"] is String) {
+          return data["detail"];
+        } else if (data["detail"] is List) {
+          final list = data["detail"] as List;
+          if (list.isNotEmpty && list[0] is Map && list[0]["msg"] != null) {
+            return list[0]["msg"].toString();
+          }
+          return list.join(", ");
+        }
+      }
+      if (data["message"] != null) {
+        return data["message"].toString();
+      }
+    }
+    return defaultMsg;
+  }
+
   /// Upload image file (from Camera or Gallery) to FastAPI Backend
   static Future<Map<String, dynamic>> uploadImageFile(File imageFile) async {
     final uri = Uri.parse(ApiUrl.uploadImage);
@@ -33,18 +54,21 @@ class ApiClient {
           "filename": data["filename"] ?? ""
         };
       } else {
-        final data = jsonDecode(response.body);
+        dynamic data;
+        try { data = jsonDecode(response.body); } catch (_) {}
+        final msg = _extractErrorMessage(data, "ইমেজ আপলোড করতে সমস্যা হয়েছে।");
         return {
           "success": false,
-          "message": data["detail"] ?? "ইমেজ আপলোড করতে সমস্যা হয়েছে।"
+          "message": msg
         };
       }
-    } catch (e) {
-      debugPrint('❌ [API ERROR]: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ [API ERROR - UPLOAD IMAGE]: $e');
+      debugPrint('📜 [STACK TRACE]: $stackTrace');
       debugPrint('==================================================');
       return {
         "success": false,
-        "message": "নেটওয়ার্ক কানেকশন এরর: ${e.toString()}"
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি। দয়া করে আপনার ইন্টারনেট এবং ব্যাকএন্ড সার্ভিস চেক করুন।"
       };
     }
   }
@@ -79,25 +103,31 @@ class ApiClient {
       debugPrint('📄 [API RES BODY]: ${response.body}');
       debugPrint('==================================================');
 
-      final data = jsonDecode(response.body);
+      dynamic data;
+      try { data = jsonDecode(response.body); } catch (_) {}
+
       if (response.statusCode == 200) {
         return {
           "success": true,
-          "message": data["message"] ?? "ওটিপি ইমেইলে পাঠানো হয়েছে।",
-          "otp_code": data["otp_code"]
+          "message": (data is Map && data["message"] != null)
+              ? data["message"]
+              : "আপনার জিমেইলে ওটিপি কোড পাঠানো হয়েছে।",
+          "otp_code": (data is Map) ? data["otp_code"] : null
         };
       } else {
+        final msg = _extractErrorMessage(data, "ওটিপি পাঠাতে ব্যর্থ হয়েছে।");
         return {
           "success": false,
-          "message": data["detail"] ?? "ওটিপি পাঠাতে ব্যর্থ হয়েছে।"
+          "message": msg
         };
       }
-    } catch (e) {
-      debugPrint('❌ [API ERROR]: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ [API ERROR - SEND OTP]: $e');
+      debugPrint('📜 [STACK TRACE]: $stackTrace');
       debugPrint('==================================================');
       return {
         "success": false,
-        "message": "সার্ভারে কানেক্ট করা যাচ্ছে না: ${e.toString()}"
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি। দয়া করে আপনার ইন্টারনেট এবং ব্যাকএন্ড সার্ভিস চেক করুন।"
       };
     }
   }
@@ -121,27 +151,31 @@ class ApiClient {
       debugPrint('📄 [API RES BODY]: ${response.body}');
       debugPrint('==================================================');
 
-      final data = jsonDecode(response.body);
+      dynamic data;
+      try { data = jsonDecode(response.body); } catch (_) {}
+
       if (response.statusCode == 201 || response.statusCode == 200) {
         return {
           "success": true,
           "data": data,
-          "access_token": data["access_token"],
-          "user_id": data["user_id"],
-          "role": data["role"]
+          "access_token": (data is Map) ? data["access_token"] : null,
+          "user_id": (data is Map) ? data["user_id"] : null,
+          "role": (data is Map) ? data["role"] : null
         };
       } else {
+        final msg = _extractErrorMessage(data, "সাইনআপ করতে ব্যর্থ হয়েছে।");
         return {
           "success": false,
-          "message": data["detail"] ?? "সাইনআপ করতে ব্যর্থ হয়েছে।"
+          "message": msg
         };
       }
-    } catch (e) {
-      debugPrint('❌ [API ERROR]: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ [API ERROR - SIGNUP]: $e');
+      debugPrint('📜 [STACK TRACE]: $stackTrace');
       debugPrint('==================================================');
       return {
         "success": false,
-        "message": "সার্ভারে কানেক্ট করা যাচ্ছে না: ${e.toString()}"
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি। দয়া করে আপনার ইন্টারনেট এবং ব্যাকএন্ড সার্ভিস চেক করুন।"
       };
     }
   }
@@ -172,28 +206,32 @@ class ApiClient {
       debugPrint('📄 [API RES BODY]: ${response.body}');
       debugPrint('==================================================');
 
-      final data = jsonDecode(response.body);
+      dynamic data;
+      try { data = jsonDecode(response.body); } catch (_) {}
+
       if (response.statusCode == 200) {
         return {
           "success": true,
           "data": data,
-          "access_token": data["access_token"],
-          "user_id": data["user_id"],
-          "role": data["role"],
-          "name": data["name"]
+          "access_token": (data is Map) ? data["access_token"] : null,
+          "user_id": (data is Map) ? data["user_id"] : null,
+          "role": (data is Map) ? data["role"] : null,
+          "name": (data is Map) ? data["name"] : null
         };
       } else {
+        final msg = _extractErrorMessage(data, "লগইন করতে ব্যর্থ হয়েছে।");
         return {
           "success": false,
-          "message": data["detail"] ?? "লগইন করতে ব্যর্থ হয়েছে।"
+          "message": msg
         };
       }
-    } catch (e) {
-      debugPrint('❌ [API ERROR]: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ [API ERROR - LOGIN]: $e');
+      debugPrint('📜 [STACK TRACE]: $stackTrace');
       debugPrint('==================================================');
       return {
         "success": false,
-        "message": "সার্ভারে কানেক্ট করা যাচ্ছে না: ${e.toString()}"
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি। দয়া করে আপনার ইন্টারনেট এবং ব্যাকএন্ড সার্ভিস চেক করুন।"
       };
     }
   }
