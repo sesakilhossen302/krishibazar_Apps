@@ -9,6 +9,7 @@ import '../../BuyerScreen/buyer_home_screen/buyer_home_screen.dart';
 import '../../BuyerScreen/buyer_orders_screen/buyer_orders_screen.dart';
 import '../../BuyerScreen/buyer_profile_screen/buyer_profile_screen.dart';
 import '../../BuyerScreen/buyer_search_screen/buyer_search_screen.dart';
+import '../../Dialogs/account_status_dialog.dart';
 import '../../Dialogs/add_demand_dialog/add_demand_dialog.dart';
 import '../../Dialogs/add_product_dialog/add_product_dialog.dart';
 import '../../Dialogs/buyer_offer_management_dialog/buyer_offer_management_dialog.dart';
@@ -102,12 +103,37 @@ class MainScreen extends StatelessWidget {
         break;
     }
 
+    final vStatus = repo.currentRole == UserRole.farmer
+        ? repo.currentFarmer.verificationStatus
+        : repo.currentBuyer.verificationStatus;
+    final userName = repo.currentRole == UserRole.farmer
+        ? repo.currentFarmer.name
+        : (repo.currentBuyer.businessName.isNotEmpty ? repo.currentBuyer.businessName : repo.currentBuyer.name);
+    final userPhotoUrl = repo.currentRole == UserRole.farmer
+        ? repo.currentFarmer.photoUrl
+        : repo.currentBuyer.photoUrl;
+    final adminNote = repo.currentRole == UserRole.farmer
+        ? repo.currentFarmer.adminNote
+        : repo.currentBuyer.adminNote;
+
     return Scaffold(
       appBar: CustomAppBar(
         currentRole: repo.currentRole,
         unreadNotifications: repo.notifications.where((n) => !n.isRead).length,
         onNotificationsClick: repo.openNotifications,
+        verificationStatus: vStatus,
+        userName: userName,
+        userPhotoUrl: userPhotoUrl,
+        onStatusClick: () {
+          AccountStatusDialog.show(
+            context,
+            status: vStatus.name,
+            adminNote: adminNote,
+            userName: userName,
+          );
+        },
       ),
+
       body: Stack(
         children: [
           bodyWidget,

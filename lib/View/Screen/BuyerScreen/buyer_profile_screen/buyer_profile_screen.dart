@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../Utils/AppColors/app_colors.dart';
+import '../../../../global/Model/krishi_models.dart';
 import '../../../../global/controller/krishi_repository.dart';
+import '../../../../service/api_url.dart';
 import '../../../Widgegt/Cards/status_badge.dart';
 import '../../../Widgegt/verification_feedback_banner.dart';
 import 'buyer_profile_controller.dart';
@@ -14,51 +16,106 @@ class BuyerProfileScreen extends StatelessWidget {
     final repo = context.watch<KrishiRepository>();
     final controller = BuyerProfileController(repo);
     final buyer = controller.buyer;
+    Color badgeBg;
+    Color badgeFg;
+    String badgeText;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          VerificationFeedbackBanner(
-            verificationStatus: buyer.verificationStatus,
-            adminNote: buyer.adminNote,
-            nidStatus: buyer.nidStatus,
-            nidRejectionNote: buyer.nidRejectionNote,
-            currentNidNumber: '',
-          ),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: AppColors.primaryGold.withValues(alpha: 0.3),
-                    child: Text(buyer.name[0], style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.brown)),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(buyer.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  Text(buyer.businessName, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14, fontWeight: FontWeight.w600)),
-                  Text(buyer.businessType, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                  const SizedBox(height: 10),
-                  StatusBadge(
-                    label: buyer.verificationStatus.labelBn,
-                    backgroundColor: AppColors.lightGreen,
-                    textColor: AppColors.primaryGreen,
-                  ),
-                  const Divider(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildProfileStat('রেটিং', '⭐ ${buyer.rating}'),
-                      _buildProfileStat('ক্রয় অর্ডার', '${buyer.completedOrders}টি'),
-                      _buildProfileStat('পেমেন্ট বিশ্বাসযোগ্যতা', '${buyer.paymentReliability}%'),
-                    ],
-                  ),
-                ],
+    switch (buyer.verificationStatus) {
+      case VerificationStatus.verified:
+        badgeBg = const Color(0xFFDCFCE7);
+        badgeFg = const Color(0xFF166534);
+        badgeText = 'ভেরিফাইড পাইকার ✅';
+        break;
+      case VerificationStatus.inProgress:
+        badgeBg = const Color(0xFFE0F2FE);
+        badgeFg = const Color(0xFF0284C7);
+        badgeText = 'যাচাই প্রক্রিয়াধীন 🔄';
+        break;
+      case VerificationStatus.suspended:
+        badgeBg = const Color(0xFFFFEDD5);
+        badgeFg = const Color(0xFFEA580C);
+        badgeText = 'অ্যাকাউন্ট স্থগিত 🚫';
+        break;
+      case VerificationStatus.rejected:
+        badgeBg = const Color(0xFFFEE2E2);
+        badgeFg = const Color(0xFFDC2626);
+        badgeText = 'আবেদন বাতিল ❌';
+        break;
+      case VerificationStatus.pending:
+        badgeBg = const Color(0xFFFEF3C7);
+        badgeFg = const Color(0xFFD97706);
+        badgeText = 'অনুমোদনাধীন (অপেক্ষমাণ) ⏳';
+        break;
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await repo.loadProfileFromBackend();
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            VerificationFeedbackBanner(
+              verificationStatus: buyer.verificationStatus,
+              adminNote: buyer.adminNote,
+              nidStatus: buyer.nidStatus,
+              nidRejectionNote: buyer.nidRejectionNote,
+              currentNidNumber: '',
+            ),
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton.icon(
+                          onPressed: repo.isProfileLoading ? null : () => repo.loadProfileFromBackend(),
+                          icon: repo.isProfileLoading
+                              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.refresh_rounded, size: 16),
+                          label: const Text('রিফ্রেশ করুন', style: TextStyle(fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundColor: AppColors.primaryGold.withValues(alpha: 0.3),
+                      backgroundImage: (buyer.photoUrl.isNotEmpty)
+                          ? NetworkImage(ApiUrl.formatMediaUrl(buyer.photoUrl))
+                          : null,
+                      child: (buyer.photoUrl.isEmpty)
+                          ? Text(buyer.name.isNotEmpty ? buyer.name[0] : 'ব', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.brown))
+                          : null,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(buyer.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text(buyer.businessName, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14, fontWeight: FontWeight.w600)),
+                    Text(buyer.businessType, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                    const SizedBox(height: 10),
+                    StatusBadge(
+                      label: badgeText,
+                      backgroundColor: badgeBg,
+                      textColor: badgeFg,
+                    ),
+                    const Divider(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildProfileStat('রেটিং', '⭐ ${buyer.rating}'),
+                        _buildProfileStat('ক্রয় অর্ডার', '${buyer.completedOrders}টি'),
+                        _buildProfileStat('পেমেন্ট বিশ্বাসযোগ্যতা', '${buyer.paymentReliability}%'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
           const SizedBox(height: 16),
           Card(
             child: Padding(
@@ -78,8 +135,9 @@ class BuyerProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildProfileStat(String label, String value) {
     return Column(

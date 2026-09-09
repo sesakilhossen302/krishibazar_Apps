@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../global/Model/krishi_models.dart';
 import '../../../../global/controller/krishi_repository.dart';
+import '../../../../service/api_url.dart';
 import '../../../Widgegt/verification_feedback_banner.dart';
 import 'farmer_home_controller.dart';
 
@@ -45,12 +46,25 @@ class FarmerHomeScreen extends StatelessWidget {
                     Container(
                       width: 54,
                       height: 54,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 2),
                       ),
-                      child: const Center(
-                        child: Text('👨‍🌾', style: TextStyle(fontSize: 30)),
+                      child: ClipOval(
+                        child: (farmer.photoUrl.isNotEmpty)
+                            ? Image.network(
+                                ApiUrl.formatMediaUrl(farmer.photoUrl),
+                                width: 54,
+                                height: 54,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const Center(
+                                  child: Text('👨‍🌾', style: TextStyle(fontSize: 30)),
+                                ),
+                              )
+                            : const Center(
+                                child: Text('👨‍🌾', style: TextStyle(fontSize: 30)),
+                              ),
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -106,12 +120,20 @@ class FarmerHomeScreen extends StatelessWidget {
                                 ? Icons.check_circle
                                 : farmer.verificationStatus == VerificationStatus.inProgress
                                     ? Icons.autorenew_rounded
-                                    : Icons.hourglass_top_rounded,
+                                    : farmer.verificationStatus == VerificationStatus.suspended
+                                        ? Icons.block_rounded
+                                        : farmer.verificationStatus == VerificationStatus.rejected
+                                            ? Icons.cancel_rounded
+                                            : Icons.hourglass_top_rounded,
                             color: farmer.verificationStatus == VerificationStatus.verified
                                 ? const Color(0xFF166534)
                                 : farmer.verificationStatus == VerificationStatus.inProgress
                                     ? const Color(0xFF0284C7)
-                                    : const Color(0xFFD97706),
+                                    : farmer.verificationStatus == VerificationStatus.suspended
+                                        ? const Color(0xFFEA580C)
+                                        : farmer.verificationStatus == VerificationStatus.rejected
+                                            ? const Color(0xFFDC2626)
+                                            : const Color(0xFFD97706),
                             size: 15,
                           ),
                           const SizedBox(width: 4),
@@ -130,7 +152,11 @@ class FarmerHomeScreen extends StatelessWidget {
                                   ? const Color(0xFF166534)
                                   : farmer.verificationStatus == VerificationStatus.inProgress
                                       ? const Color(0xFF0284C7)
-                                      : const Color(0xFFD97706),
+                                      : farmer.verificationStatus == VerificationStatus.suspended
+                                          ? const Color(0xFFEA580C)
+                                          : farmer.verificationStatus == VerificationStatus.rejected
+                                              ? const Color(0xFFDC2626)
+                                              : const Color(0xFFD97706),
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../global/Model/krishi_models.dart';
 import '../../../../global/controller/krishi_repository.dart';
+import '../../../../service/api_url.dart';
 import 'buyer_home_controller.dart';
 
 class BuyerHomeScreen extends StatelessWidget {
@@ -62,11 +63,26 @@ class BuyerHomeScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
                         ),
-                        child: const Icon(
-                          Icons.apartment_rounded,
-                          color: Colors.white,
-                          size: 30,
+                        child: ClipOval(
+                          child: (buyer.photoUrl.isNotEmpty)
+                              ? Image.network(
+                                  ApiUrl.formatMediaUrl(buyer.photoUrl),
+                                  width: 52,
+                                  height: 52,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => const Icon(
+                                    Icons.apartment_rounded,
+                                    color: Colors.white,
+                                    size: 30,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.apartment_rounded,
+                                  color: Colors.white,
+                                  size: 30,
+                                ),
                         ),
                       ),
                       const SizedBox(width: 12),
