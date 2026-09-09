@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../global/Model/krishi_models.dart';
 import '../../../../global/controller/krishi_repository.dart';
 import '../../../../service/api_url.dart';
+import '../../DemandOffersScreen/demand_offers_screen.dart';
 import 'buyer_home_controller.dart';
 
 class BuyerHomeScreen extends StatelessWidget {
@@ -479,7 +480,14 @@ class BuyerHomeScreen extends StatelessWidget {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: () => controller.openDemandOffers(demand),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DemandOffersScreen(demand: demand),
+                              ),
+                            );
+                          },
                           icon: const Icon(Icons.people_rounded, color: Colors.white, size: 18),
                           label: Text(
                             'প্রাপ্ত অফার দেখুন ও নির্বাচন করুন (${_toBnDigits(demand.offersCount)} টি)',

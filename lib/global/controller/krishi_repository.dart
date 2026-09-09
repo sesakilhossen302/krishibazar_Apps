@@ -290,6 +290,10 @@ class KrishiRepository extends ChangeNotifier {
   bool isLoadingOffers = false;
 
   Future<void> fetchMyOffersFromBackend({bool force = false}) async {
+    // Only farmers have "my submitted offers"
+    if (_currentRole != UserRole.farmer && _currentFarmer.id.isEmpty) {
+      return;
+    }
     isLoadingOffers = true;
     notifyListeners();
 
@@ -306,7 +310,10 @@ class KrishiRepository extends ChangeNotifier {
           return FarmerOffer.fromBackendMap(item);
         }).toList();
 
-        _offers = backendOffers;
+        for (var o in backendOffers) {
+          _offers.removeWhere((item) => item.id == o.id);
+          _offers.add(o);
+        }
       }
     } catch (e) {
       debugPrint('Error fetching offers from backend: $e');

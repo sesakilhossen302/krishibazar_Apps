@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../Utils/StaticString/static_string.dart';
 import '../../../../global/controller/krishi_repository.dart';
 import '../../../Widgegt/Cards/demand_card.dart';
+import '../../DemandOffersScreen/demand_offers_screen.dart';
 import 'buyer_demands_controller.dart';
 
 class BuyerDemandsScreen extends StatefulWidget {
@@ -206,7 +207,14 @@ class _BuyerDemandsScreenState extends State<BuyerDemandsScreen> {
                       final demand = myDemands[index];
                       return DemandCard(
                         demand: demand,
-                        onAction: () => _controller.openOffers(demand),
+                        onAction: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DemandOffersScreen(demand: demand),
+                            ),
+                          );
+                        },
                         actionText: '${StaticString.viewOffersButton} (${_toBnDigits(demand.offersCount)}টি)',
                         isFarmerView: false,
                         onDelete: () => _controller.confirmDeleteDemand(context, demand),
