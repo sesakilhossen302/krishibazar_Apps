@@ -17,7 +17,9 @@ class FarmerProductsController extends ChangeNotifier {
     'মেয়াদোত্তীর্ণ',
   ];
 
-  FarmerProductsController(this.repository);
+  FarmerProductsController(this.repository) {
+    repository.fetchProductsFromBackend();
+  }
 
   void setFilterIndex(int index) {
     _selectedFilterIndex = index;
@@ -25,9 +27,15 @@ class FarmerProductsController extends ChangeNotifier {
   }
 
   List<ProductListing> get allMyProducts {
-    return repository.products
-        .where((p) => p.farmerId == repository.currentFarmer.id)
-        .toList();
+    final myId = repository.currentFarmer.id;
+    final myName = repository.currentFarmer.name.trim().toLowerCase();
+
+    return repository.products.where((p) {
+      if (p.farmerId.isNotEmpty && p.farmerId == myId) return true;
+      if (myName.isNotEmpty && p.farmerName.trim().toLowerCase() == myName) return true;
+      // If products belong to current farmer in DB or created locally
+      return false;
+    }).toList();
   }
 
   List<ProductListing> get filteredProducts {
@@ -48,7 +56,9 @@ class FarmerProductsController extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshFromBackend() => repository.fetchProductsFromBackend();
   void openAddProduct() => repository.openAddProductDialog();
   void deleteProduct(String id) => repository.deleteProduct(id);
   void openDetail(ProductListing product) => repository.openProductDetail(product);
 }
+

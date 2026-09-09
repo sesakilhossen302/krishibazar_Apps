@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../Utils/AppColors/app_colors.dart';
 import '../../../Utils/AppConst/app_const.dart';
 import '../../../global/Model/krishi_models.dart';
+import '../app_media_image.dart';
 import 'status_badge.dart';
 
 class ProductCard extends StatelessWidget {
@@ -30,24 +31,13 @@ class ProductCard extends StatelessWidget {
           children: [
             Stack(
               children: [
-                Container(
+                SizedBox(
                   height: 160,
                   width: double.infinity,
-                  color: Colors.grey.shade200,
-                  child: Image.network(
-                    product.imageUrls.isNotEmpty
-                        ? product.imageUrls.first
-                        : 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=600&q=80',
+                  child: AppMediaImage(
+                    url: product.imageUrls.isNotEmpty ? product.imageUrls.first : null,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: AppColors.lightGreen,
-                      child: Center(
-                        child: Text(
-                          product.category.icon,
-                          style: const TextStyle(fontSize: 48),
-                        ),
-                      ),
-                    ),
+                    categoryIcon: product.category.icon,
                   ),
                 ),
                 Positioned(
@@ -90,6 +80,44 @@ class ProductCard extends StatelessWidget {
                     textColor: Colors.black,
                   ),
                 ),
+                if (product.videoUrl != null && product.videoUrl!.isNotEmpty)
+                  Positioned(
+                    bottom: 10,
+                    left: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.75),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFEA580C).withValues(alpha: 0.8),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.play_circle_fill,
+                            size: 14,
+                            color: Color(0xFFEA580C),
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'ভিডিও আছে',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 if (showDelete && onDelete != null)
                   Positioned(
                     bottom: 10,

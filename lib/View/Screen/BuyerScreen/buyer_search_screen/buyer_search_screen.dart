@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../global/Model/krishi_models.dart';
 import '../../../../global/controller/krishi_repository.dart';
 import '../../../Widgegt/Cards/product_card.dart';
+import '../../ProductDetailScreen/product_detail_screen.dart';
 import 'buyer_search_controller.dart';
 
 class BuyerSearchScreen extends StatelessWidget {
@@ -209,7 +210,14 @@ class BuyerSearchScreen extends StatelessWidget {
                     final product = products[index];
                     return ProductCard(
                       product: product,
-                      onTap: () => controller.openDetail(product),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ProductDetailScreen(product: product),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),

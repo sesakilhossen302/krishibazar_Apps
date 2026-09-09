@@ -697,6 +697,113 @@ class ApiClient {
       };
     }
   }
+
+  /// Fetch all active products from backend with optional filters
+  static Future<Map<String, dynamic>> fetchProducts({
+    String? category,
+    String? district,
+    String? farmerId,
+    String? search,
+  }) async {
+    Uri uri = Uri.parse(ApiUrl.products);
+    final queryParams = <String, String>{};
+    if (category != null && category.isNotEmpty && category != 'all') {
+      queryParams['category'] = category;
+    }
+    if (district != null && district.isNotEmpty) {
+      queryParams['district'] = district;
+    }
+    if (farmerId != null && farmerId.isNotEmpty) {
+      queryParams['farmer_id'] = farmerId;
+    }
+    if (search != null && search.isNotEmpty) {
+      queryParams['search'] = search;
+    }
+    if (queryParams.isNotEmpty) {
+      uri = uri.replace(queryParameters: queryParams);
+    }
+
+    debugPrint('🚀 [API REQ] GET Products: $uri');
+
+    try {
+      final response = await http.get(uri);
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 && data is List) {
+        return {
+          "success": true,
+          "data": data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "পণ্য তালিকা লোড করা যায়নি।"),
+          "data": [],
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - FETCH PRODUCTS]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+        "data": [],
+      };
+    }
+  }
+
+  /// Fetch products posted by the currently authenticated farmer
+  static Future<Map<String, dynamic>> fetchMyProducts({
+    String? token,
+    String? farmerId,
+  }) async {
+    Uri uri = Uri.parse("${ApiUrl.products}my-products");
+    if (farmerId != null && farmerId.isNotEmpty) {
+      uri = uri.replace(queryParameters: {'farmer_id': farmerId});
+    }
+
+    final headers = <String, String>{};
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    debugPrint('🚀 [API REQ] GET My Products: $uri');
+
+    try {
+      final response = await http.get(uri, headers: headers);
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 && data is List) {
+        return {
+          "success": true,
+          "data": data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "কৃষকের পণ্য তালিকা লোড করা যায়নি।"),
+          "data": [],
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - FETCH MY PRODUCTS]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+        "data": [],
+      };
+    }
+  }
 }
+
 
 

@@ -238,6 +238,41 @@ class KrishiRepository extends ChangeNotifier {
 
   String? snackbarMessage;
 
+  bool isLoadingProducts = false;
+
+  Future<void> fetchProductsFromBackend({bool force = false}) async {
+    isLoadingProducts = true;
+    notifyListeners();
+
+    try {
+      final res = await ApiClient.fetchProducts();
+      if (res['success'] == true && res['data'] is List) {
+        final List list = res['data'];
+        if (list.isNotEmpty) {
+          final List<ProductListing> backendProducts = list.map((item) {
+            return ProductListing.fromBackendMap(item);
+          }).toList();
+
+          final Map<String, ProductListing> productMap = {};
+          for (var p in backendProducts) {
+            productMap[p.id] = p;
+          }
+          for (var p in _products) {
+            if (!productMap.containsKey(p.id)) {
+              productMap[p.id] = p;
+            }
+          }
+          _products = productMap.values.toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching products from backend: $e');
+    } finally {
+      isLoadingProducts = false;
+      notifyListeners();
+    }
+  }
+
   Timer? _periodicSyncTimer;
 
   void startPeriodicSync() {
@@ -246,6 +281,7 @@ class KrishiRepository extends ChangeNotifier {
       final isLoggedIn = await SharedPrefHelper.isLoggedIn();
       if (isLoggedIn) {
         loadProfileFromBackend();
+        fetchProductsFromBackend();
       }
     });
   }
@@ -258,6 +294,7 @@ class KrishiRepository extends ChangeNotifier {
   KrishiRepository() {
     _initData();
     loadProfileFromBackend();
+    fetchProductsFromBackend();
     startPeriodicSync();
   }
 
