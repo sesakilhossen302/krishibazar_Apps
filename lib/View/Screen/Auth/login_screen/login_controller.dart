@@ -55,9 +55,9 @@ class LoginController extends ChangeNotifier {
       final roleEnum = roleStr == 'buyer' ? UserRole.buyer : UserRole.farmer;
 
       final userMap = (res["data"] is Map) ? (res["data"] as Map) : {};
-      final token = res["access_token"] ?? userMap["access_token"] ?? "";
-      final userId = res["user_id"] ?? userMap["user_id"] ?? "";
-      final userDistrict = userMap["district"] ?? "";
+      final token = (res["access_token"] ?? userMap["access_token"] ?? res["token"] ?? userMap["token"] ?? "").toString();
+      final userId = (res["user_id"] ?? userMap["user_id"] ?? userMap["id"] ?? "").toString();
+      final userDistrict = (userMap["district"] ?? res["district"] ?? "").toString();
       final userName = (res["name"] ?? userMap["name"] ?? "ব্যবহারকারী").toString();
       final vStatus = (res["verification_status"] ?? userMap["verification_status"] ?? "pending").toString();
       final adminNote = (res["admin_note"] ?? userMap["admin_note"] ?? "").toString();
@@ -68,15 +68,26 @@ class LoginController extends ChangeNotifier {
         name: userName,
         email: identifier.contains("@") ? identifier : (userMap["email"] ?? ""),
         phone: !identifier.contains("@") ? identifier : (userMap["phone"] ?? ""),
-        userId: userId.toString(),
-        token: token.toString(),
-        district: userDistrict.toString(),
+        userId: userId,
+        token: token,
+        district: userDistrict,
         verificationStatus: vStatus,
       );
+      if (token.isNotEmpty) {
+        await SharedPrefHelper.saveToken(token);
+      }
 
       if (context.mounted) {
-        context.read<KrishiController>().switchRole(roleEnum);
-        context.read<KrishiRepository>().switchRole(roleEnum);
+        final repo = context.read<KrishiRepository>();
+        final krishiCtrl = context.read<KrishiController>();
+
+        krishiCtrl.switchRole(roleEnum);
+        repo.switchRole(roleEnum);
+
+        repo.setFarmerTab(0);
+        repo.setBuyerTab(0);
+        krishiCtrl.setFarmerTab(0);
+        krishiCtrl.setBuyerTab(0);
 
         // Immediately load user profile from backend
         context.read<KrishiRepository>().loadProfileFromBackend();

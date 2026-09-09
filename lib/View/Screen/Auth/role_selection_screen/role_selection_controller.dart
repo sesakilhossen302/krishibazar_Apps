@@ -13,13 +13,7 @@ class RoleSelectionController extends ChangeNotifier {
 
   Future<void> onProceedToRegister(BuildContext context) async {
     // Store preliminary chosen role in SharedPreferences
-    await SharedPrefHelper.saveUserSession(
-      isLoggedIn: false,
-      role: selectedRole.name,
-      name: '',
-      email: '',
-      phone: '',
-    );
+    await SharedPrefHelper.saveUserRole(selectedRole.name);
 
     if (context.mounted) {
       Navigator.pushNamed(

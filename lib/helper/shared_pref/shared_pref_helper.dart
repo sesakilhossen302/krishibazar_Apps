@@ -96,6 +96,17 @@ class SharedPrefHelper {
     return prefs.getString(keyToken) ?? '';
   }
 
+  static Future<void> saveToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(keyToken, token);
+    await prefs.setBool(keyIsLoggedIn, token.trim().isNotEmpty);
+  }
+
+  static Future<void> saveUserRole(String role) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(keyUserRole, role);
+  }
+
   static Future<String> getUserRole() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(keyUserRole) ?? 'farmer';

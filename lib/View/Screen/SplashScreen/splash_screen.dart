@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../Utils/AppColors/app_colors.dart';
 import '../../../Utils/AppConst/app_const.dart';
-import '../MainScreen/main_screen.dart';
+import 'splash_screen/splash_controller.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,16 +11,12 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  final SplashController _controller = SplashController();
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainScreen()),
-        );
-      }
-    });
+    _controller.init(context);
   }
 
   @override
