@@ -248,22 +248,11 @@ class KrishiRepository extends ChangeNotifier {
       final res = await ApiClient.fetchProducts();
       if (res['success'] == true && res['data'] is List) {
         final List list = res['data'];
-        if (list.isNotEmpty) {
-          final List<ProductListing> backendProducts = list.map((item) {
-            return ProductListing.fromBackendMap(item);
-          }).toList();
+        final List<ProductListing> backendProducts = list.map((item) {
+          return ProductListing.fromBackendMap(item);
+        }).toList();
 
-          final Map<String, ProductListing> productMap = {};
-          for (var p in backendProducts) {
-            productMap[p.id] = p;
-          }
-          for (var p in _products) {
-            if (!productMap.containsKey(p.id)) {
-              productMap[p.id] = p;
-            }
-          }
-          _products = productMap.values.toList();
-        }
+        _products = backendProducts;
       }
     } catch (e) {
       debugPrint('Error fetching products from backend: $e');
@@ -325,271 +314,36 @@ class KrishiRepository extends ChangeNotifier {
   }
 
   void _initData() {
-    _farmers = [
-      FarmerProfile(
-        id: 'farmer_1',
-        name: 'মো: আব্দুল রহিম',
-        phone: '01712-892102',
-        district: 'রাজশাহী',
-        upazila: 'গোদাগাড়ী',
-        union: 'বাণিজ্যিক খামারি',
-        address: 'গ্রাম: গোদাগাড়ী, রাজশাহী',
-        farmerType: 'বাণিজ্যিক খামারি',
-      ),
-      FarmerProfile(
-        id: 'farmer_2',
-        name: 'খলিলুর রহমান',
-        phone: '01892-120934',
-        district: 'দিনাজপুর',
-        upazila: 'বীরগঞ্জ',
-        union: 'মোহাম্মদপুর',
-        address: 'গ্রাম: সুজালপুর, বীরগঞ্জ, দিনাজপুর',
-        farmerType: 'ধান ও গম চাষী (২৫ বিঘা)',
-      ),
-    ];
-    _currentFarmer = _farmers.first;
+    _farmers = [];
+    _currentFarmer = FarmerProfile(
+      id: '',
+      name: '',
+      phone: '',
+      district: '',
+      upazila: '',
+      union: '',
+      address: '',
+      farmerType: '',
+    );
 
-    _buyers = [
-      BuyerProfile(
-        id: 'buyer_1',
-        name: 'আলহাজ্ব শফিকুল ইসলাম',
-        phone: '01911-543210',
-        businessName: 'কারওয়ান বাজার পাইকারি আরত store',
-        businessType: 'পাইকারি আড়তদার ও সরবরাহকারী',
-        district: 'ঢাকা',
-        area: 'কারওয়ান বাজার',
-        address: 'শেড নং ৪, কারওয়ান বাজার কাঁচাবাজার, ঢাকা',
-      ),
-      BuyerProfile(
-        id: 'buyer_2',
-        name: 'মাহমুদুল হাসান',
-        phone: '01552-890123',
-        businessName: 'গ্রিন ক্রপস এগ্রো ট্রেডার্স',
-        businessType: 'সুপারশপ ও কর্পোরেট সাপ্লাই',
-        district: 'গাজীপুর',
-        area: 'টঙ্গী',
-        address: 'প্লট ৪৫, স্টেশন রোড, টঙ্গী, গাজীপুর',
-      ),
-    ];
-    _currentBuyer = _buyers.first;
+    _buyers = [];
+    _currentBuyer = BuyerProfile(
+      id: '',
+      name: '',
+      phone: '',
+      businessName: '',
+      businessType: '',
+      district: '',
+      area: '',
+      address: '',
+    );
 
-    _products = [
-      ProductListing(
-        id: 'prod_1',
-        farmerId: 'farmer_1',
-        farmerName: 'মো: আব্দুল রহিম',
-        farmerDistrict: 'রাজশাহী',
-        title: 'রাজশাহীর মিষ্টি পাকা টমেটো',
-        category: ProductCategory.vegetables,
-        quantity: 3500.0,
-        remainingQuantity: 3500.0,
-        unit: ProductUnit.kg,
-        expectedPrice: 38.0,
-        minPrice: 35.0,
-        location: 'গোদাগাড়ী, রাজশাহী',
-        availableDate: 'তাত্ক্ষণিক',
-        harvestDate: 'গতকাল তোলা',
-        qualityGrade: QualityGrade.gradeA,
-        description:
-            'ক্ষেতের টাটকা ও মিষ্টি পাকা টমেটো। চমৎকার লাল রঙ ও উন্নত গ্রেড।',
-        imageUrls: [
-          'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80',
-        ],
-        videoUrl:
-            'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
-        videoNote: 'ক্ষেতের ভিডিও 🎬',
-        status: ProductStatus.active,
-        createdAt: '১০ মিনিট আগে',
-      ),
-      ProductListing(
-        id: 'prod_2',
-        farmerId: 'farmer_1',
-        farmerName: 'মো: আব্দুল রহিম',
-        farmerDistrict: 'রাজশাহী',
-        title: 'হিমসাগর আম (অগ্রিম বুকিং)',
-        category: ProductCategory.fruits,
-        quantity: 2000.0,
-        remainingQuantity: 2000.0,
-        unit: ProductUnit.kg,
-        expectedPrice: 95.0,
-        minPrice: 90.0,
-        location: 'বাঘা, রাজশাহী',
-        availableDate: 'আগামী সপ্তাহ',
-        harvestDate: 'গাছপাকা',
-        qualityGrade: QualityGrade.gradeA,
-        description:
-            'রাজশাহীর বিখ্যাত সুস্বাদু হিমসাগর আম। কেমিক্যালমুক্ত গাছপাকা আম।',
-        imageUrls: [
-          'https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=600&q=80',
-        ],
-        status: ProductStatus.active,
-        createdAt: '১ ঘন্টা আগে',
-      ),
-      ProductListing(
-        id: 'prod_3',
-        farmerId: 'farmer_1',
-        farmerName: 'মো: আব্দুল রহিম',
-        farmerDistrict: 'রাজশাহী',
-        title: 'সবুজ কাঁচা পেঁপে (রান্নার জন্য)',
-        category: ProductCategory.vegetables,
-        quantity: 2000.0,
-        remainingQuantity: 2000.0,
-        unit: ProductUnit.kg,
-        expectedPrice: 24.0,
-        minPrice: 22.0,
-        location: 'গোদাগাড়ী, রাজশাহী',
-        availableDate: 'তাত্ক্ষণিক',
-        harvestDate: 'তাজা ডাল কাটা',
-        qualityGrade: QualityGrade.gradeA,
-        description:
-            'সরাসরি গাছ থেকে তাজা কাটা কাঁচা পেঁপে। তরকারি ও রান্নার উপযোগী।',
-        imageUrls: [
-          'https://images.unsplash.com/photo-1617112848923-cc2234396a8d?auto=format&fit=crop&w=600&q=80',
-        ],
-        status: ProductStatus.pending,
-        createdAt: '৩ ঘন্টা আগে',
-      ),
-    ];
-
+    _products = [];
     _demands = [];
-
     _offers = [];
-
-    _orders = [
-      MarketplaceOrder(
-        id: 'ord_1011',
-        orderNumber: 'KB-1011',
-        buyerId: 'buyer_1',
-        buyerName: 'হাজী সালাহউদ্দিন',
-        buyerBusinessName: 'কাওরান বাজার পাইকারি আড়ত',
-        buyerPhone: '01911-543210',
-        farmerId: 'farmer_1',
-        farmerName: 'মো: আব্দুল রহিম (গোদাগাড়ী, রাজশাহী)',
-        farmerPhone: '01712-892102',
-        farmerLocation: 'রাজশাহী',
-        productTitle: 'টমেটো (Tomato)',
-        category: ProductCategory.vegetables,
-        quantity: 500.0,
-        unit: ProductUnit.kg,
-        pricePerUnit: 42.0,
-        totalAmount: 21000.0,
-        depositRequired: 4200.0,
-        isDepositPaid: false,
-        orderStatus: OrderStatus.pending,
-        deliveryLocation: 'কাওরান বাজার কাঁচাবাজার, ঢাকা',
-        expectedDeliveryDate: '০৭ সেপ্টেম্বর',
-        deliveryInfo: DeliveryInfo(
-          pickupLocation: 'গোদাগাড়ী, রাজশাহী',
-          collectionCenter: 'রাজশাহী কালেকশন হাব',
-          deliveryLocation: 'কাওরান বাজার, ঢাকা',
-          transportStatus: TransportStatus.waiting,
-        ),
-        verification: QualityVerification(
-          expectedWeight: 500.0,
-          actualWeight: 500.0,
-          unit: ProductUnit.kg,
-          qualityGrade: QualityGrade.gradeA,
-          isVerified: false,
-        ),
-        createdAt: '02:29 PM, 07 Sep',
-      ),
-      MarketplaceOrder(
-        id: 'ord_1001',
-        orderNumber: 'KB-1001',
-        buyerId: 'buyer_1',
-        buyerName: 'হাজী সালাহউদ্দিন',
-        buyerBusinessName: 'কাওরান বাজার পাইকারি আড়ত',
-        buyerPhone: '01911-543210',
-        farmerId: 'farmer_1',
-        farmerName: 'মো: আব্দুল রহিম (গোদাগাড়ী, রাজশাহী)',
-        farmerPhone: '01712-892102',
-        farmerLocation: 'রাজশাহী',
-        productTitle: 'মিষ্টি পাকা টমেটো',
-        category: ProductCategory.vegetables,
-        quantity: 10000.0,
-        unit: ProductUnit.kg,
-        pricePerUnit: 4.0,
-        totalAmount: 40000.0,
-        depositRequired: 8000.0,
-        isDepositPaid: true,
-        orderStatus: OrderStatus.completed,
-        deliveryLocation: 'কাওরান বাজার কাঁচাবাজার, ঢাকা',
-        expectedDeliveryDate: '২৯ আগস্ট',
-        deliveryInfo: DeliveryInfo(
-          pickupLocation: 'গোদাগাড়ী, রাজশাহী',
-          collectionCenter: 'রাজশাহী কালেকশন হাব',
-          deliveryLocation: 'কাওরান বাজার, ঢাকা',
-          transportStatus: TransportStatus.delivered,
-        ),
-        verification: QualityVerification(
-          expectedWeight: 10000.0,
-          actualWeight: 10000.0,
-          unit: ProductUnit.kg,
-          qualityGrade: QualityGrade.gradeA,
-          isVerified: true,
-        ),
-        createdAt: '২৯ আগস্ট',
-      ),
-      MarketplaceOrder(
-        id: 'ord_1007',
-        orderNumber: 'KB-1007',
-        buyerId: 'buyer_1',
-        buyerName: 'হাজী সালাহউদ্দিন',
-        buyerBusinessName: 'কাওরান বাজার পাইকারি আড়ত',
-        buyerPhone: '01911-543210',
-        farmerId: 'farmer_2',
-        farmerName: 'আব্দুল লতিফ (ত্রিশাল, ময়মনসিংহ)',
-        farmerPhone: '01892-120934',
-        farmerLocation: 'ময়মনসিংহ',
-        productTitle: 'পুকুরের তাজা রুই মাছ',
-        category: ProductCategory.fish,
-        quantity: 800.0,
-        unit: ProductUnit.kg,
-        pricePerUnit: 275.0,
-        totalAmount: 220000.0,
-        depositRequired: 44000.0,
-        isDepositPaid: true,
-        orderStatus: OrderStatus.completed,
-        deliveryLocation: 'কাওরান বাজার মাছের আড়ত, ঢাকা',
-        expectedDeliveryDate: '১৫ আগস্ট',
-        deliveryInfo: DeliveryInfo(
-          pickupLocation: 'ত্রিশাল, ময়মনসিংহ',
-          collectionCenter: 'ময়মনসিংহ কালেকশন হাব',
-          deliveryLocation: 'কাওরান বাজার, ঢাকা',
-          transportStatus: TransportStatus.delivered,
-        ),
-        verification: QualityVerification(
-          expectedWeight: 800.0,
-          actualWeight: 800.0,
-          unit: ProductUnit.kg,
-          qualityGrade: QualityGrade.gradeA,
-          isVerified: true,
-        ),
-        createdAt: '১৫ আগস্ট',
-      ),
-    ];
-
+    _orders = [];
     _notifications = [];
-
-    _chatMessages = [
-      ChatMessage(
-        id: 'msg_1',
-        orderId: 'ord_1001',
-        senderName: 'মোঃ আব্দুল হাশেম',
-        senderRole: UserRole.farmer,
-        message: 'আসসালামু আলাইকুম ভাই, মাল ট্রাকে লোড হয়ে রওনা দিয়েছে।',
-        timestamp: 'দুপুর ১২:০০',
-      ),
-      ChatMessage(
-        id: 'msg_2',
-        orderId: 'ord_1001',
-        senderName: 'আলহাজ্ব শফিকুল ইসলাম',
-        senderRole: UserRole.buyer,
-        message:
-            'ওয়ালাইকুম আসসালাম। ধন্যবাদ হাশেম ভাই, ড্রাইভারের নাম্বার পাইছি।',
-        timestamp: 'দুপুর ১২:০৫',
-      ),
-    ];
+    _chatMessages = [];
   }
 
   void switchRole(UserRole role) {
