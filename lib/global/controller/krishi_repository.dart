@@ -872,6 +872,17 @@ class KrishiRepository extends ChangeNotifier {
     notifyListeners();
   }
 
+  void addNewProduct(ProductListing product) {
+    _products.removeWhere((p) => p.id == product.id);
+    _products.insert(0, product);
+    _currentFarmer = _currentFarmer.copyWith(
+      productsCount: _currentFarmer.productsCount + 1,
+    );
+    closeAddProductDialog();
+    snackbarMessage = StaticString.productAddedSuccess;
+    notifyListeners();
+  }
+
   void submitProduct({
     required String title,
     required ProductCategory category,
@@ -884,9 +895,13 @@ class KrishiRepository extends ChangeNotifier {
     required String harvestDate,
     required QualityGrade qualityGrade,
     required String description,
+    List<String> imageUrls = const [],
+    String? videoUrl,
+    String? videoNote,
+    String? productId,
   }) {
     final newProduct = ProductListing(
-      id: 'prod_${DateTime.now().millisecondsSinceEpoch}',
+      id: productId ?? 'prod_${DateTime.now().millisecondsSinceEpoch}',
       farmerId: _currentFarmer.id,
       farmerName: _currentFarmer.name,
       farmerDistrict: _currentFarmer.district,
@@ -902,15 +917,16 @@ class KrishiRepository extends ChangeNotifier {
       harvestDate: harvestDate,
       qualityGrade: qualityGrade,
       description: description,
-      imageUrls: [
-        'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80',
-      ],
+      imageUrls: imageUrls.isNotEmpty
+          ? imageUrls
+          : [
+              'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80',
+            ],
+      videoUrl: videoUrl,
+      videoNote: videoNote,
       createdAt: 'এখনই',
     );
-    _products.insert(0, newProduct);
-    closeAddProductDialog();
-    snackbarMessage = StaticString.productAddedSuccess;
-    notifyListeners();
+    addNewProduct(newProduct);
   }
 
   void deleteProduct(String productId) {

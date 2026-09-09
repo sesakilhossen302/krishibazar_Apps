@@ -34,6 +34,8 @@ class ApiUrl {
   static String get baseUrl => "$serverBaseUrl/api/v1";
 
   static String get uploadImage => "$baseUrl/upload/image";
+  static String get uploadImages => "$baseUrl/upload/images";
+  static String get uploadVideo => "$baseUrl/upload/video";
   static String get sendOtp => "$baseUrl/auth/send-otp";
   static String get verifyOtp => "$baseUrl/auth/verify-otp";
   static String get signup => "$baseUrl/auth/signup";

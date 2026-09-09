@@ -526,5 +526,177 @@ class ApiClient {
       return false;
     }
   }
+
+  /// Upload multiple image files to backend /upload/images
+  static Future<Map<String, dynamic>> uploadMultipleImages(List<File> imageFiles) async {
+    if (imageFiles.isEmpty) {
+      return {"success": true, "urls": <String>[]};
+    }
+
+    final uri = Uri.parse(ApiUrl.uploadImages);
+    debugPrint('🚀 [API REQ] POST Upload Multiple Images: $uri (${imageFiles.length} files)');
+
+    try {
+      final request = http.MultipartRequest("POST", uri);
+      for (var file in imageFiles) {
+        if (await file.exists()) {
+          request.files.add(await http.MultipartFile.fromPath('files', file.path));
+        }
+      }
+
+      if (request.files.isEmpty) {
+        return {"success": true, "urls": <String>[]};
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final List<String> urls = (data['urls'] as List?)?.map((e) => e.toString()).toList() ?? [];
+        return {
+          "success": true,
+          "urls": urls,
+          "primary_url": data['primary_url'] ?? (urls.isNotEmpty ? urls.first : ""),
+          "message": data['message'] ?? "",
+        };
+      } else {
+        final msg = _extractErrorMessage(data, "ছবি আপলোড করতে ব্যর্থ হয়েছে।");
+        return {"success": false, "message": msg, "urls": <String>[]};
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - UPLOAD MULTIPLE IMAGES]: $e');
+      return {"success": false, "message": "ছবি আপলোড করার সময় নেটওয়ার্ক ত্রুটি ঘটেছে: $e", "urls": <String>[]};
+    }
+  }
+
+  /// Upload video clip to backend /upload/video
+  static Future<Map<String, dynamic>> uploadVideoFile(File videoFile) async {
+    final uri = Uri.parse(ApiUrl.uploadVideo);
+    debugPrint('🚀 [API REQ] POST Upload Video: $uri (${videoFile.path})');
+
+    try {
+      final request = http.MultipartRequest("POST", uri);
+      request.files.add(await http.MultipartFile.fromPath('file', videoFile.path));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          "success": true,
+          "url": data['url'] ?? "",
+          "full_url": data['full_url'] ?? "",
+          "message": data['message'] ?? "ভিডিও সফলভাবে আপলোড হয়েছে",
+        };
+      } else {
+        final msg = _extractErrorMessage(data, "ভিডিও আপলোড করতে ব্যর্থ হয়েছে।");
+        return {"success": false, "message": msg};
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - UPLOAD VIDEO]: $e');
+      return {"success": false, "message": "ভিডিও আপলোড করার সময় নেটওয়ার্ক ত্রুটি ঘটেছে: $e"};
+    }
+  }
+
+  /// Create a new product on the backend
+  static Future<Map<String, dynamic>> createProduct({
+    String? token,
+    String? farmerId,
+    required String title,
+    required String category,
+    required double quantity,
+    required String unit,
+    required double expectedPrice,
+    required double minPrice,
+    required String location,
+    required String availableDate,
+    required String harvestDate,
+    required String qualityGrade,
+    String description = "",
+    List<String> images = const [],
+    String videoUrl = "",
+    String videoNote = "",
+  }) async {
+    final uri = Uri.parse(ApiUrl.products);
+    final Map<String, String> headers = {
+      "Content-Type": "application/json; charset=UTF-8",
+    };
+    if (token != null && token.trim().isNotEmpty) {
+      headers["Authorization"] = "Bearer ${token.trim()}";
+    }
+
+    final body = {
+      if (farmerId != null && farmerId.trim().isNotEmpty) "farmer_id": farmerId.trim(),
+      "title": title.trim(),
+      "category": category.trim(),
+      "quantity": quantity,
+      "unit": unit.trim(),
+      "expected_price": expectedPrice,
+      "min_price": minPrice,
+      "location": location.trim(),
+      "available_date": availableDate.trim(),
+      "harvest_date": harvestDate.trim(),
+      "quality_grade": qualityGrade.trim(),
+      "description": description.trim(),
+      "images": images,
+      "image_url": images.isNotEmpty ? images.first : "",
+      "video_url": videoUrl.trim(),
+      "video_note": videoNote.trim(),
+    };
+
+    debugPrint('==================================================');
+    debugPrint('🚀 [API REQ] POST Create Product: $uri');
+    debugPrint('📦 [BODY]: ${jsonEncode(body)}');
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: headers,
+        body: jsonEncode(body),
+      );
+
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+      debugPrint('📄 [API RES BODY]: ${response.body}');
+      debugPrint('==================================================');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          "success": true,
+          "data": data,
+          "message": "পণ্যটি সফলভাবে লিস্টিং করা হয়েছে!",
+        };
+      } else {
+        final msg = _extractErrorMessage(data, "নতুন পণ্য যুক্ত করতে সমস্যা হয়েছে।");
+        return {
+          "success": false,
+          "message": msg,
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - CREATE PRODUCT]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+      };
+    }
+  }
 }
+
 

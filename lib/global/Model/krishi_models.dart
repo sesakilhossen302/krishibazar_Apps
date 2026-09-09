@@ -531,6 +531,84 @@ class ProductListing {
     this.status = ProductStatus.active,
     required this.createdAt,
   });
+
+  factory ProductListing.fromBackendMap(Map<String, dynamic> json) {
+    // Map category
+    ProductCategory cat = ProductCategory.vegetables;
+    final rawCat = (json['category'] ?? '').toString();
+    for (var c in ProductCategory.values) {
+      if (c.name.toLowerCase() == rawCat.toLowerCase() ||
+          c.labelBn == rawCat ||
+          rawCat.contains(c.labelBn)) {
+        cat = c;
+        break;
+      }
+    }
+
+    // Map unit
+    ProductUnit u = ProductUnit.kg;
+    final rawUnit = (json['unit'] ?? '').toString();
+    for (var unitEnum in ProductUnit.values) {
+      if (unitEnum.name.toLowerCase() == rawUnit.toLowerCase() ||
+          unitEnum.labelBn == rawUnit ||
+          rawUnit.contains(unitEnum.labelBn)) {
+        u = unitEnum;
+        break;
+      }
+    }
+
+    // Map quality grade
+    QualityGrade qg = QualityGrade.gradeA;
+    final rawGrade = (json['quality_grade'] ?? '').toString();
+    for (var g in QualityGrade.values) {
+      if (g.name.toLowerCase() == rawGrade.toLowerCase() ||
+          g.labelBn == rawGrade ||
+          rawGrade.contains(g.labelBn)) {
+        qg = g;
+        break;
+      }
+    }
+
+    // Map images
+    List<String> images = [];
+    if (json['images'] is List) {
+      images = (json['images'] as List).map((e) => e.toString()).toList();
+    } else if (json['image_url'] != null && json['image_url'].toString().isNotEmpty) {
+      images = json['image_url'].toString().split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    }
+
+    // If still empty, add default placeholder
+    if (images.isEmpty) {
+      images = [
+        'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80'
+      ];
+    }
+
+    return ProductListing(
+      id: json['id']?.toString() ?? '',
+      farmerId: json['farmer_id']?.toString() ?? '',
+      farmerName: json['farmer_name']?.toString() ?? 'কৃষক',
+      farmerDistrict: json['farmer_district']?.toString() ?? 'বাংলাদেশ',
+      farmerVerified: json['farmer_verified'] == true,
+      title: json['title']?.toString() ?? 'পণ্য',
+      category: cat,
+      quantity: (json['quantity'] is num) ? (json['quantity'] as num).toDouble() : 0.0,
+      remainingQuantity: (json['remaining_quantity'] is num) ? (json['remaining_quantity'] as num).toDouble() : ((json['quantity'] is num) ? (json['quantity'] as num).toDouble() : 0.0),
+      unit: u,
+      expectedPrice: (json['expected_price'] is num) ? (json['expected_price'] as num).toDouble() : 0.0,
+      minPrice: (json['min_price'] is num) ? (json['min_price'] as num).toDouble() : 0.0,
+      location: json['location']?.toString() ?? '',
+      availableDate: json['available_date']?.toString() ?? '',
+      harvestDate: json['harvest_date']?.toString() ?? '',
+      qualityGrade: qg,
+      description: json['description']?.toString() ?? '',
+      imageUrls: images,
+      videoUrl: json['video_url']?.toString(),
+      videoNote: json['video_note']?.toString(),
+      status: ProductStatus.active,
+      createdAt: json['created_at']?.toString() ?? 'এখনই',
+    );
+  }
 }
 
 class BuyerDemand {
