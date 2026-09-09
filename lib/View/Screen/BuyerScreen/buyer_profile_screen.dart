@@ -6,6 +6,7 @@ import '../../../global/controller/krishi_controller.dart';
 import '../../../helper/shared_pref/shared_pref_helper.dart';
 import '../../../service/api_url.dart';
 import '../../Widgegt/Cards/status_badge.dart';
+import '../Dialogs/edit_profile_dialog.dart';
 
 class BuyerProfileScreen extends StatefulWidget {
   const BuyerProfileScreen({super.key});
@@ -178,16 +179,42 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 42,
-                        backgroundColor: const Color(0xFFDCFCE7),
-                        child: Text(
-                          buyer.name.isNotEmpty ? buyer.name[0] : 'ব',
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF166534),
-                          ),
+                      InkWell(
+                        onTap: () => EditProfileDialog.show(context, isFarmer: false, buyer: buyer),
+                        borderRadius: BorderRadius.circular(50),
+                        child: Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            CircleAvatar(
+                              radius: 42,
+                              backgroundColor: const Color(0xFFDCFCE7),
+                              backgroundImage: buyer.photoUrl.isNotEmpty
+                                  ? NetworkImage(ApiUrl.formatMediaUrl(buyer.photoUrl))
+                                  : null,
+                              child: buyer.photoUrl.isEmpty
+                                  ? Text(
+                                      buyer.name.isNotEmpty ? buyer.name[0] : 'ব',
+                                      style: const TextStyle(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF166534),
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF166534),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt_rounded,
+                                color: Colors.white,
+                                size: 13,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -241,6 +268,25 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: () => EditProfileDialog.show(context, isFarmer: false, buyer: buyer),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF166534),
+                            side: const BorderSide(color: Color(0xFF86EFAC), width: 1.5),
+                            backgroundColor: const Color(0xFFF0FDF4),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          icon: const Icon(Icons.edit_note_rounded, size: 20),
+                          label: const Text(
+                            'প্রোফাইল এডিট ও তথ্য পরিবর্তন করুন',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -260,13 +306,31 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'ব্যবসা ও ঠিকানা',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Color(0xFF0F172A),
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'ব্যবসা ও ঠিকানা',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            icon: const Icon(Icons.edit_location_alt_outlined, size: 16, color: Color(0xFF166534)),
+                            label: const Text(
+                              'তথ্য পরিবর্তন',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
+                            ),
+                            onPressed: () => EditProfileDialog.show(context, isFarmer: false, buyer: buyer),
+                          ),
+                        ],
                       ),
                       const Divider(height: 20, color: Color(0xFFF1F5F9)),
                       _buildInfoRow(Icons.phone, 'ফোন নাম্বার', buyer.phone),

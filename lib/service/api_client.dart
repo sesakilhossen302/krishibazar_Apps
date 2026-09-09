@@ -301,16 +301,22 @@ class ApiClient {
     }
   }
 
-  /// Update User Profile Data via PATCH /users/profile
+  /// Update User Profile Data via PATCH /users/profile or /users/profile/{userId}
   static Future<Map<String, dynamic>> updateUserProfile({
-    required String token,
+    String? token,
+    String? userId,
     required Map<String, dynamic> updateData,
   }) async {
-    final uri = Uri.parse(ApiUrl.profile);
-    final headers = {
+    Uri uri = Uri.parse(ApiUrl.profile);
+    final headers = <String, String>{
       "Content-Type": "application/json",
-      "Authorization": "Bearer $token",
     };
+
+    if (token != null && token.trim().isNotEmpty) {
+      headers["Authorization"] = "Bearer ${token.trim()}";
+    } else if (userId != null && userId.trim().isNotEmpty) {
+      uri = Uri.parse("${ApiUrl.profile}/${userId.trim()}");
+    }
 
     debugPrint('==================================================');
     debugPrint('🚀 [API REQ] PATCH User Profile: $uri');

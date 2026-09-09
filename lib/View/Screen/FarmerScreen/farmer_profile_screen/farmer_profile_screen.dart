@@ -2,12 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../global/Model/krishi_models.dart';
 import '../../../../global/controller/krishi_repository.dart';
-import '../../../../service/api_client.dart';
 import '../../../../service/api_url.dart';
-import '../../../../service/location_service.dart';
-import '../../../../helper/shared_pref/shared_pref_helper.dart';
-import '../../../Widgegt/custom_text_field/custom_text_field.dart';
-import '../../../Widgegt/location_picker_card.dart';
+import '../../Dialogs/edit_profile_dialog.dart';
 import 'farmer_profile_controller.dart';
 
 class FarmerProfileScreen extends StatefulWidget {
@@ -199,45 +195,49 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    // Avatar & Verification Icon
-                    Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        Container(
-                          width: 86,
-                          height: 86,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFDCFCE7),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFF166534), width: 2),
-                          ),
-                          child: farmer.photoUrl.isNotEmpty
-                              ? ClipOval(
-                                  child: Image.network(
-                                    ApiUrl.formatMediaUrl(farmer.photoUrl),
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => const Center(
-                                      child: Text('👨‍🌾', style: TextStyle(fontSize: 44)),
+                    // Avatar & Verification Icon (Clickable to Edit)
+                    InkWell(
+                      onTap: () => EditProfileDialog.show(context, isFarmer: true, farmer: farmer),
+                      borderRadius: BorderRadius.circular(50),
+                      child: Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          Container(
+                            width: 86,
+                            height: 86,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDCFCE7),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFF166534), width: 2),
+                            ),
+                            child: farmer.photoUrl.isNotEmpty
+                                ? ClipOval(
+                                    child: Image.network(
+                                      ApiUrl.formatMediaUrl(farmer.photoUrl),
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => const Center(
+                                        child: Text('👨‍🌾', style: TextStyle(fontSize: 44)),
+                                      ),
                                     ),
+                                  )
+                                : const Center(
+                                    child: Text('👨‍🌾', style: TextStyle(fontSize: 44)),
                                   ),
-                                )
-                              : const Center(
-                                  child: Text('👨‍🌾', style: TextStyle(fontSize: 44)),
-                                ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF166534),
-                            shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.check,
-                            color: Colors.white,
-                            size: 14,
+                          Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF166534),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt_rounded,
+                              color: Colors.white,
+                              size: 13,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 14),
 
@@ -326,6 +326,25 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                           ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: OutlinedButton.icon(
+                        onPressed: () => EditProfileDialog.show(context, isFarmer: true, farmer: farmer),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF166534),
+                          side: const BorderSide(color: Color(0xFF86EFAC), width: 1.5),
+                          backgroundColor: const Color(0xFFF0FDF4),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        icon: const Icon(Icons.edit_note_rounded, size: 20),
+                        label: const Text(
+                          'প্রোফাইল এডিট ও তথ্য পরিবর্তন করুন',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -379,7 +398,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                             'ঠিকানা পরিবর্তন',
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
                           ),
-                          onPressed: () => _showLocationUpdateDialog(context, farmer),
+                          onPressed: () => EditProfileDialog.show(context, isFarmer: true, farmer: farmer),
                         ),
                       ],
                     ),
@@ -663,175 +682,6 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  void _showLocationUpdateDialog(BuildContext context, FarmerProfile farmer) {
-    final distCtrl = TextEditingController(text: farmer.district);
-    final upazilaCtrl = TextEditingController(text: farmer.upazila);
-    final unionCtrl = TextEditingController(text: farmer.union);
-    final addressCtrl = TextEditingController(text: farmer.address);
-    bool isDetecting = false;
-    bool isSaving = false;
-    DetectedLocation? detected;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'ঠিকানা ও অবস্থান আপডেট',
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-                const Divider(height: 12),
-                LocationPickerCard(
-                  isLoading: isDetecting,
-                  detectedLocation: detected,
-                  onDetectLocation: () async {
-                    setModalState(() => isDetecting = true);
-                    try {
-                      final loc = await LocationService.getCurrentLocation();
-                      setModalState(() {
-                        detected = loc;
-                        if (loc.district.isNotEmpty) distCtrl.text = loc.district;
-                        if (loc.upazila.isNotEmpty) upazilaCtrl.text = loc.upazila;
-                        if (loc.unionOrArea.isNotEmpty) unionCtrl.text = loc.unionOrArea;
-                        if (loc.fullAddress.isNotEmpty) addressCtrl.text = loc.fullAddress;
-                      });
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("✓ লোকেশন সনাক্ত হয়েছে: ${loc.district} ${loc.upazila}"),
-                            backgroundColor: Colors.green.shade700,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red.shade700),
-                        );
-                      }
-                    } finally {
-                      setModalState(() => isDetecting = false);
-                    }
-                  },
-                ),
-                const SizedBox(height: 14),
-                CustomTextField(
-                  controller: distCtrl,
-                  hintText: 'জেলা (যেমন: ঢাকা, রাজশাহী)',
-                  prefixIcon: Icons.location_city_rounded,
-                ),
-                const SizedBox(height: 10),
-                CustomTextField(
-                  controller: upazilaCtrl,
-                  hintText: 'উপজেলা/থানা (যেমন: গোদাগাড়ী, গুলশান)',
-                  prefixIcon: Icons.map_outlined,
-                ),
-                const SizedBox(height: 10),
-                CustomTextField(
-                  controller: unionCtrl,
-                  hintText: 'ইউনিয়ন/গ্রাম/এলাকা',
-                  prefixIcon: Icons.holiday_village_outlined,
-                ),
-                const SizedBox(height: 10),
-                CustomTextField(
-                  controller: addressCtrl,
-                  hintText: 'বিস্তারিত সম্পূর্ণ ঠিকানা',
-                  prefixIcon: Icons.home_work_outlined,
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF166534),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: isSaving ? null : () async {
-                      setModalState(() => isSaving = true);
-                      final token = await SharedPrefHelper.getToken();
-                      final updatePayload = {
-                        "district": distCtrl.text.trim(),
-                        "upazila": upazilaCtrl.text.trim(),
-                        "union": unionCtrl.text.trim(),
-                        "address": addressCtrl.text.trim(),
-                      };
-
-                      final res = await ApiClient.updateUserProfile(
-                        token: token,
-                        updateData: updatePayload,
-                      );
-
-                      if (!context.mounted) return;
-                      setModalState(() => isSaving = false);
-                      Navigator.pop(ctx);
-                      if (res["success"] == true) {
-                        await SharedPrefHelper.updateUserLocation(
-                          district: distCtrl.text.trim(),
-                          upazila: upazilaCtrl.text.trim(),
-                          union: unionCtrl.text.trim(),
-                          address: addressCtrl.text.trim(),
-                        );
-                        if (context.mounted) {
-                          context.read<KrishiRepository>().loadProfileFromBackend();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("✓ আপনার ঠিকানা সফলভাবে ব্যাকএন্ডে সংরক্ষিত হয়েছে!"),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        }
-                      } else {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(res["message"] ?? "ঠিকানা আপডেট করতে সমস্যা হয়েছে।"),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    child: isSaving
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('সংরক্ষণ করুন ও ব্যাকএন্ডে আপডেট করুন', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
