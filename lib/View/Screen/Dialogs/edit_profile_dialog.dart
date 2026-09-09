@@ -124,6 +124,22 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     }
   }
 
+  void _onLocationSelected(LocationSearchResult result) {
+    setState(() {
+      if (result.district.isNotEmpty) districtController.text = result.district;
+      if (result.upazila.isNotEmpty) upazilaController.text = result.upazila;
+      if (result.unionOrArea.isNotEmpty) unionController.text = result.unionOrArea;
+      if (result.fullAddress.isNotEmpty) addressController.text = result.fullAddress;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("✓ '${result.title}' এর জেলা, উপজেলা ও বিস্তারিত ঠিকানা পূরণ হয়েছে!"),
+        backgroundColor: Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _autoDetectLocation() async {
     setState(() => isDetectingLocation = true);
     try {
@@ -146,10 +162,11 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       }
     } catch (e) {
       if (mounted) {
+        final cleanMsg = e.toString().replaceAll('Exception:', '').trim();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red.shade700,
+            content: Text(cleanMsg),
+            backgroundColor: Colors.orange.shade800,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -431,9 +448,10 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
             ),
             const SizedBox(height: 8),
             LocationPickerCard(
-              isLoading: isDetectingLocation,
+              isLoadingGps: isDetectingLocation,
               detectedLocation: detectedLocation,
               onDetectLocation: _autoDetectLocation,
+              onLocationSelected: _onLocationSelected,
             ),
             const SizedBox(height: 12),
             Row(

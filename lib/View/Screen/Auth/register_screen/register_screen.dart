@@ -163,9 +163,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 10),
                   LocationPickerCard(
-                    isLoading: _controller.isDetectingLocation,
+                    isLoadingGps: _controller.isDetectingLocation,
                     detectedLocation: _controller.detectedLocation,
                     onDetectLocation: () => _controller.autoDetectLocation(context),
+                    onLocationSelected: (result) {
+                      setState(() {
+                        if (result.district.isNotEmpty) _controller.districtController.text = result.district;
+                        if (result.upazila.isNotEmpty) _controller.upazilaController.text = result.upazila;
+                        if (result.unionOrArea.isNotEmpty) _controller.unionController.text = result.unionOrArea;
+                        if (result.fullAddress.isNotEmpty) _controller.addressController.text = result.fullAddress;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("✓ '${result.title}' এর ঠিকানা স্বয়ংক্রিয় পূরণ হয়েছে!"),
+                          backgroundColor: Colors.green.shade700,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 12),
                   Row(

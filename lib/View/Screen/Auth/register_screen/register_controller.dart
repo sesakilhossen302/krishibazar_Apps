@@ -89,12 +89,22 @@ class RegisterController extends ChangeNotifier {
       }
     } catch (e) {
       if (context.mounted) {
-        _showSnackBar(context, e.toString(), isError: true);
+        final cleanMsg = e.toString().replaceAll('Exception:', '').trim();
+        _showSnackBar(context, cleanMsg, isError: true);
       }
     } finally {
       isDetectingLocation = false;
       notifyListeners();
     }
+  }
+
+  /// Populate fields from search selection
+  void selectLocationResult(LocationSearchResult loc) {
+    if (loc.district.isNotEmpty) districtController.text = loc.district;
+    if (loc.upazila.isNotEmpty) upazilaController.text = loc.upazila;
+    if (loc.unionOrArea.isNotEmpty) unionController.text = loc.unionOrArea;
+    if (loc.fullAddress.isNotEmpty) addressController.text = loc.fullAddress;
+    notifyListeners();
   }
 
   void _showSnackBar(BuildContext context, String message, {bool isError = true}) {
