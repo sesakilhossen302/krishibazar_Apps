@@ -283,22 +283,11 @@ class KrishiRepository extends ChangeNotifier {
       final res = await ApiClient.fetchDemands();
       if (res['success'] == true && res['data'] is List) {
         final List list = res['data'];
-        if (list.isNotEmpty) {
-          final List<BuyerDemand> backendDemands = list.map((item) {
-            return BuyerDemand.fromBackendMap(item);
-          }).toList();
+        final List<BuyerDemand> backendDemands = list.map((item) {
+          return BuyerDemand.fromBackendMap(item);
+        }).toList();
 
-          final Map<String, BuyerDemand> demandMap = {};
-          for (var d in backendDemands) {
-            demandMap[d.id] = d;
-          }
-          for (var d in _demands) {
-            if (!demandMap.containsKey(d.id)) {
-              demandMap[d.id] = d;
-            }
-          }
-          _demands = demandMap.values.toList();
-        }
+        _demands = backendDemands;
       }
     } catch (e) {
       debugPrint('Error fetching demands from backend: $e');
@@ -462,168 +451,9 @@ class KrishiRepository extends ChangeNotifier {
       ),
     ];
 
-    _demands = [
-      BuyerDemand(
-        id: 'dem_1',
-        buyerId: 'buyer_1',
-        buyerName: 'আলহাজ্ব শফিকুল ইসলাম',
-        buyerBusinessName: 'কাওরান বাজার পাইকারি আড়ত',
-        buyerDistrict: 'ঢাকা',
-        productTitle: 'টমেটো (Tomato)',
-        category: ProductCategory.vegetables,
-        requiredQuantity: 2000.0,
-        unit: ProductUnit.kg,
-        requiredLocation: 'কাওরান বাজার আড়ত, ঢাকা',
-        requiredDate: '২০ সেপ্টেম্বর',
-        minExpectedPrice: 40.0,
-        maxExpectedPrice: 45.0,
-        qualityGrade: QualityGrade.gradeA,
-        additionalNote: 'লাল পাকা ফ্রেশ টমেটো প্রয়োজন, ক্র্যাটিং ভালো হতে হবে।',
-        offersCount: 3,
-        createdAt: '১০ মিনিট আগে',
-      ),
-      BuyerDemand(
-        id: 'dem_2',
-        buyerId: 'buyer_1',
-        buyerName: 'আলহাজ্ব শফিকুল ইসলাম',
-        buyerBusinessName: 'কাওরান বাজার পাইকারি আড়ত',
-        buyerDistrict: 'ঢাকা',
-        productTitle: 'পুকুরের তাজা রুই মাছ (Fish)',
-        category: ProductCategory.fish,
-        requiredQuantity: 1200.0,
-        unit: ProductUnit.kg,
-        requiredLocation: 'কাওরান বাজার মাছের আড়ত, ঢাকা',
-        requiredDate: '১৭ সেপ্টেম্বর',
-        minExpectedPrice: 270.0,
-        maxExpectedPrice: 290.0,
-        qualityGrade: QualityGrade.gradeA,
-        additionalNote: '১.৫ থেকে ২ কেজি সাইজের তাজা রুই মাছ।',
-        offersCount: 2,
-        createdAt: '১ ঘন্টা আগে',
-      ),
-      BuyerDemand(
-        id: 'dem_3',
-        buyerId: 'buyer_2',
-        buyerName: 'উত্তরা ট্রেডার্স',
-        buyerBusinessName: 'উত্তরা পাইকারি ঘর',
-        buyerDistrict: 'ঢাকা',
-        productTitle: 'মিষ্টি হানিকুইন আনারস (Pineapple)',
-        category: ProductCategory.fruits,
-        requiredQuantity: 2000.0,
-        unit: ProductUnit.piece,
-        requiredLocation: 'উত্তরা সেক্টর ৭ বাজার, ঢাকা',
-        requiredDate: '২০ সেপ্টেম্বর',
-        minExpectedPrice: 32.0,
-        maxExpectedPrice: 36.0,
-        qualityGrade: QualityGrade.gradeA,
-        additionalNote: 'রসালো ও মিষ্টি টাঙ্গাইল মধুপুরের আনারস।',
-        offersCount: 2,
-        createdAt: '২ ঘন্টা আগে',
-      ),
-      BuyerDemand(
-        id: 'dem_4',
-        buyerId: 'buyer_2',
-        buyerName: 'শ্যামবাজার এগ্রো',
-        buyerBusinessName: 'শ্যামবাজার ট্রেডার্স',
-        buyerDistrict: 'ঢাকা',
-        productTitle: 'শুকনো আটা গম (Wheat)',
-        category: ProductCategory.wheat,
-        requiredQuantity: 4000.0,
-        unit: ProductUnit.kg,
-        requiredLocation: 'শ্যামবাজার ঘাট, ঢাকা',
-        requiredDate: '২৪ সেপ্টেম্বর',
-        minExpectedPrice: 40.0,
-        maxExpectedPrice: 44.0,
-        qualityGrade: QualityGrade.gradeB,
-        additionalNote: 'ভালো মানের গম। পোকা বা ভেজাল থাকা চলবে না।',
-        offersCount: 4,
-        createdAt: '৩ ঘন্টা আগে',
-      ),
-    ];
+    _demands = [];
 
-    _offers = [
-      FarmerOffer(
-        id: 'off_101',
-        demandId: 'dem_1',
-        farmerId: 'farmer_1',
-        farmerName: 'মো: আব্দুল রহিম',
-        farmerPhone: '01712-892102',
-        farmerLocation: 'গোদাগাড়ী, রাজশাহী',
-        offeredQuantity: 500.0,
-        unit: ProductUnit.kg,
-        pricePerUnit: 42.0,
-        qualityGrade: QualityGrade.gradeA,
-        availableDate: '১৮ সেপ্টেম্বর',
-        note:
-            'আমি ৫০০ কেজি দিতে পারব। গ্রেড এ পাকা টমেটো। প্লাস্টিক ক্রেটে ডেলিভারি।',
-        status: OfferStatus.accepted,
-        createdAt: '১০ মিনিট আগে',
-      ),
-      FarmerOffer(
-        id: 'off_102',
-        demandId: 'dem_1',
-        farmerId: 'farmer_2',
-        farmerName: 'করিম উল্লাহ মৃধা',
-        farmerPhone: '01892-120934',
-        farmerLocation: 'শিবগঞ্জ, বগুড়া',
-        offeredQuantity: 800.0,
-        unit: ProductUnit.kg,
-        pricePerUnit: 41.0,
-        qualityGrade: QualityGrade.gradeA,
-        availableDate: '১৯ সেপ্টেম্বর',
-        note: 'আমি ৮০০ কেজি দিতে পারব। একদম তাজা বাগান থেকে তোলা।',
-        status: OfferStatus.pending,
-        createdAt: '২০ মিনিট আগে',
-      ),
-      FarmerOffer(
-        id: 'off_103',
-        demandId: 'dem_1',
-        farmerId: 'farmer_3',
-        farmerName: 'খলিলুর রহমান',
-        farmerPhone: '01923-456789',
-        farmerLocation: 'ঝিকরগাছা, যশোর',
-        offeredQuantity: 700.0,
-        unit: ProductUnit.kg,
-        pricePerUnit: 42.0,
-        qualityGrade: QualityGrade.gradeA,
-        availableDate: '২০ সেপ্টেম্বর',
-        note: 'আমি ৭০০ কেজি দেওয়ার জন্য প্রস্তুত।',
-        status: OfferStatus.pending,
-        createdAt: '৩০ মিনিট আগে',
-      ),
-      FarmerOffer(
-        id: 'off_201',
-        demandId: 'dem_2',
-        farmerId: 'farmer_4',
-        farmerName: 'আব্দুল লতিফ',
-        farmerPhone: '01711-223344',
-        farmerLocation: 'ত্রিশাল, ময়মনসিংহ',
-        offeredQuantity: 1200.0,
-        unit: ProductUnit.kg,
-        pricePerUnit: 275.0,
-        qualityGrade: QualityGrade.gradeA,
-        availableDate: '১৬ সেপ্টেম্বর',
-        note: 'অক্সিজেন ড্রামে করে একদম জীবন্ত রুই মাছ পৌঁছানো হবে।',
-        status: OfferStatus.pending,
-        createdAt: '১৫ মিনিট আগে',
-      ),
-      FarmerOffer(
-        id: 'off_202',
-        demandId: 'dem_2',
-        farmerId: 'farmer_3',
-        farmerName: 'খলিলুর রহমান',
-        farmerPhone: '01923-456789',
-        farmerLocation: 'ঝিকরগাছা, যশোর',
-        offeredQuantity: 600.0,
-        unit: ProductUnit.kg,
-        pricePerUnit: 280.0,
-        qualityGrade: QualityGrade.gradeA,
-        availableDate: '১৭ সেপ্টেম্বর',
-        note: 'পুকুরের তাজা রুই মাছ ৬০০ কেজি পাঠাতে পারি।',
-        status: OfferStatus.pending,
-        createdAt: '৪০ মিনিট আগে',
-      ),
-    ];
+    _offers = [];
 
     _orders = [
       MarketplaceOrder(
