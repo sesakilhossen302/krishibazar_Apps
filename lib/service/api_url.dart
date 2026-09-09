@@ -45,6 +45,9 @@ class ApiUrl {
   static String get products => "$baseUrl/products/";
   static String get demands => "$baseUrl/demands/";
   static String get orders => "$baseUrl/orders/";
+  static String get notifications => "$baseUrl/notifications/";
+  static String get unreadNotificationsCount => "$baseUrl/notifications/unread-count";
+  static String get markAllNotificationsRead => "$baseUrl/notifications/mark-all-read";
 
   /// Helper to convert backend image URLs or paths to valid network image URLs
   static String formatMediaUrl(String? url) {
@@ -56,8 +59,18 @@ class ApiUrl {
     if (!formatted.startsWith("http://") && !formatted.startsWith("https://")) {
       return "$serverBaseUrl/$formatted";
     }
-    if (!kIsWeb && Platform.isAndroid && formatted.contains("127.0.0.1:8000")) {
-      formatted = formatted.replaceAll("127.0.0.1:8000", "10.0.2.2:8000");
+    if (isUsingPublicServer && publicServerUrl.isNotEmpty) {
+      formatted = formatted
+          .replaceAll("http://127.0.0.1:8000", publicServerUrl)
+          .replaceAll("http://localhost:8000", publicServerUrl)
+          .replaceAll("http://10.0.2.2:8000", publicServerUrl);
+    } else if (!kIsWeb && Platform.isAndroid) {
+      if (formatted.contains("127.0.0.1:8000")) {
+        formatted = formatted.replaceAll("127.0.0.1:8000", "10.0.2.2:8000");
+      }
+      if (formatted.contains("localhost:8000")) {
+        formatted = formatted.replaceAll("localhost:8000", "10.0.2.2:8000");
+      }
     }
     return formatted;
   }

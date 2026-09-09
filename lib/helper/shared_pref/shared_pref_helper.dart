@@ -156,6 +156,16 @@ class SharedPrefHelper {
     await prefs.setString(keyPhotoUrl, photoUrl);
   }
 
+  static Future<String> getVerificationStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(keyVerificationStatus) ?? 'pending';
+  }
+
+  static Future<void> saveVerificationStatus(String status) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(keyVerificationStatus, status);
+  }
+
   static Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();

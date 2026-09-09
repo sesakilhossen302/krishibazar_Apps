@@ -51,7 +51,8 @@ class ApiClient {
           "success": true,
           "url": data["url"] ?? "",
           "full_url": data["full_url"] ?? "",
-          "filename": data["filename"] ?? ""
+          "filename": data["filename"] ?? "",
+          "data": data,
         };
       } else {
         dynamic data;
@@ -363,11 +364,13 @@ class ApiClient {
   /// Re-upload NID documents when rejected by admin
   static Future<Map<String, dynamic>> reuploadNid({
     String? token,
+    String? userId,
     required String nidFrontUrl,
     required String nidBackUrl,
     String? nidNumber,
   }) async {
-    final uri = Uri.parse("${ApiUrl.users}/reupload-nid");
+    final queryStr = (userId != null && userId.trim().isNotEmpty) ? "?user_id=${userId.trim()}" : "";
+    final uri = Uri.parse("${ApiUrl.users}/reupload-nid$queryStr");
     final Map<String, String> headers = {
       "Content-Type": "application/json",
     };
@@ -376,6 +379,7 @@ class ApiClient {
     }
 
     final body = {
+      if (userId != null && userId.trim().isNotEmpty) "user_id": userId.trim(),
       "nid_front_url": nidFrontUrl,
       "nid_back_url": nidBackUrl,
       if (nidNumber != null && nidNumber.trim().isNotEmpty) "nid_or_doc": nidNumber.trim(),
@@ -417,6 +421,109 @@ class ApiClient {
         "success": false,
         "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
       };
+    }
+  }
+
+  /// Fetch user notifications from backend
+  static Future<Map<String, dynamic>> fetchNotifications({
+    String? token,
+    String? userId,
+  }) async {
+    Uri uri = Uri.parse(ApiUrl.notifications);
+    final Map<String, String> headers = {
+      "Content-Type": "application/json",
+    };
+
+    if (token != null && token.trim().isNotEmpty) {
+      headers["Authorization"] = "Bearer ${token.trim()}";
+    }
+    if (userId != null && userId.trim().isNotEmpty) {
+      uri = uri.replace(queryParameters: {"user_id": userId.trim()});
+    }
+
+    try {
+      final response = await http.get(uri, headers: headers);
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 && data is List) {
+        return {
+          "success": true,
+          "data": data,
+        };
+      } else {
+        final msg = _extractErrorMessage(data, "বিজ্ঞপ্তি পেতে সমস্যা হয়েছে।");
+        return {
+          "success": false,
+          "message": msg,
+          "data": [],
+        };
+      }
+    } catch (e) {
+      return {
+        "success": false,
+        "message": "বিজ্ঞপ্তি লোড করা যায়নি: $e",
+        "data": [],
+      };
+    }
+  }
+
+  /// Mark single notification as read
+  static Future<bool> markNotificationRead(String notificationId, {String? token}) async {
+    final uri = Uri.parse("${ApiUrl.notifications}$notificationId/read");
+    final Map<String, String> headers = {
+      "Content-Type": "application/json",
+    };
+    if (token != null && token.trim().isNotEmpty) {
+      headers["Authorization"] = "Bearer ${token.trim()}";
+    }
+
+    try {
+      final response = await http.patch(uri, headers: headers);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Mark all notifications as read
+  static Future<bool> markAllNotificationsRead({String? token, String? userId}) async {
+    Uri uri = Uri.parse(ApiUrl.markAllNotificationsRead);
+    final Map<String, String> headers = {
+      "Content-Type": "application/json",
+    };
+    if (token != null && token.trim().isNotEmpty) {
+      headers["Authorization"] = "Bearer ${token.trim()}";
+    }
+    if (userId != null && userId.trim().isNotEmpty) {
+      uri = uri.replace(queryParameters: {"user_id": userId.trim()});
+    }
+
+    try {
+      final response = await http.patch(uri, headers: headers);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Delete notification
+  static Future<bool> deleteNotification(String notificationId, {String? token}) async {
+    final uri = Uri.parse("${ApiUrl.notifications}$notificationId");
+    final Map<String, String> headers = {
+      "Content-Type": "application/json",
+    };
+    if (token != null && token.trim().isNotEmpty) {
+      headers["Authorization"] = "Bearer ${token.trim()}";
+    }
+
+    try {
+      final response = await http.delete(uri, headers: headers);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
     }
   }
 }

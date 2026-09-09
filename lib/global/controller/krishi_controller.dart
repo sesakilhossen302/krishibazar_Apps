@@ -68,20 +68,94 @@ class KrishiController extends ChangeNotifier {
       if (res["success"] == true && res["data"] is Map<String, dynamic>) {
         final data = res["data"] as Map<String, dynamic>;
         final userRole = (data["role"] ?? role).toString().toLowerCase();
+        final rawStatus = data["verification_status"]?.toString() ?? "pending";
 
         if (userRole == "farmer") {
           _currentFarmer = FarmerProfile.fromBackendMap(data);
         } else {
           _currentBuyer = BuyerProfile.fromBackendMap(data);
         }
+
+        await SharedPrefHelper.saveVerificationStatus(rawStatus);
       }
     } catch (e) {
       debugPrint("Error loading profile from backend: $e");
     } finally {
       isProfileLoading = false;
       notifyListeners();
+      fetchNotificationsFromBackend();
     }
   }
+
+  bool isNotificationsLoading = false;
+
+  Future<void> fetchNotificationsFromBackend() async {
+    final isLoggedIn = await SharedPrefHelper.isLoggedIn();
+    if (!isLoggedIn) return;
+
+    final token = await SharedPrefHelper.getToken();
+    final userId = await SharedPrefHelper.getUserId();
+
+    isNotificationsLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await ApiClient.fetchNotifications(
+        token: token.isNotEmpty ? token : null,
+        userId: userId.isNotEmpty ? userId : null,
+      );
+
+      if (res["success"] == true && res["data"] is List) {
+        final list = res["data"] as List;
+        final fetched = list.map((item) {
+          if (item is Map<String, dynamic>) {
+            return NotificationItem.fromBackendMap(item);
+          } else if (item is Map) {
+            return NotificationItem.fromBackendMap(Map<String, dynamic>.from(item));
+          }
+          return null;
+        }).whereType<NotificationItem>().toList();
+
+        _notifications = fetched;
+      }
+    } catch (e) {
+      debugPrint("Error fetching notifications from backend: $e");
+    } finally {
+      isNotificationsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> markNotificationAsRead(String id) async {
+    final index = _notifications.indexWhere((n) => n.id == id);
+    if (index != -1) {
+      _notifications[index] = _notifications[index].copyWith(isRead: true);
+      notifyListeners();
+    }
+    final token = await SharedPrefHelper.getToken();
+    await ApiClient.markNotificationRead(id, token: token.isNotEmpty ? token : null);
+  }
+
+  Future<void> markAllNotificationsAsRead() async {
+    _notifications = _notifications.map((n) => n.copyWith(isRead: true)).toList();
+    notifyListeners();
+
+    final token = await SharedPrefHelper.getToken();
+    final userId = await SharedPrefHelper.getUserId();
+    await ApiClient.markAllNotificationsRead(
+      token: token.isNotEmpty ? token : null,
+      userId: userId.isNotEmpty ? userId : null,
+    );
+  }
+
+  Future<void> deleteNotification(String id) async {
+    _notifications.removeWhere((n) => n.id == id);
+    notifyListeners();
+
+    final token = await SharedPrefHelper.getToken();
+    await ApiClient.deleteNotification(id, token: token.isNotEmpty ? token : null);
+  }
+
 
   List<FarmerProfile> _farmers = [];
   List<FarmerProfile> get farmers => _farmers;
@@ -337,14 +411,7 @@ class KrishiController extends ChangeNotifier {
     _disputes = [];
     _reviews = [];
 
-    _notifications = [
-      NotificationItem(
-        id: 'notif_1',
-        title: 'কৃষি বাজার বাজারে নতুন আপডেট! 🌾',
-        message: 'আপনাদের সুবিধার জন্য কালেকশন হাবে সরাসরি ওজন যাচাই ব্যবস্থা চালু হয়েছে।',
-        timestamp: 'আজ সকাল ১০:০০',
-      ),
-    ];
+    _notifications = [];
 
     _chatMessages = [
       ChatMessage(

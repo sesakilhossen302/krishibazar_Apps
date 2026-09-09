@@ -162,7 +162,7 @@ class FarmerProfile {
     required this.union,
     required this.address,
     required this.farmerType,
-    this.verificationStatus = VerificationStatus.verified,
+    this.verificationStatus = VerificationStatus.pending,
     this.nidOrDoc = '',
     this.nidFrontUrl = '',
     this.nidBackUrl = '',
@@ -176,16 +176,18 @@ class FarmerProfile {
   });
 
   factory FarmerProfile.fromBackendMap(Map<String, dynamic> json) {
-    VerificationStatus vStatus = VerificationStatus.verified;
-    final rawStatus = (json['verification_status'] ?? '').toString().toLowerCase();
-    if (rawStatus == 'pending') {
-      vStatus = VerificationStatus.pending;
+    VerificationStatus vStatus = VerificationStatus.pending;
+    final rawStatus = (json['verification_status'] ?? '').toString().toLowerCase().replaceAll('_', '');
+    if (rawStatus == 'verified') {
+      vStatus = VerificationStatus.verified;
     } else if (rawStatus == 'inprogress') {
       vStatus = VerificationStatus.inProgress;
     } else if (rawStatus == 'rejected') {
       vStatus = VerificationStatus.rejected;
     } else if (rawStatus == 'suspended') {
       vStatus = VerificationStatus.suspended;
+    } else {
+      vStatus = VerificationStatus.pending;
     }
 
     return FarmerProfile(
@@ -218,6 +220,54 @@ class FarmerProfile {
           : 0,
     );
   }
+
+  FarmerProfile copyWith({
+    String? id,
+    String? name,
+    String? phone,
+    String? email,
+    String? photoUrl,
+    String? district,
+    String? upazila,
+    String? union,
+    String? address,
+    String? farmerType,
+    VerificationStatus? verificationStatus,
+    String? nidOrDoc,
+    String? nidFrontUrl,
+    String? nidBackUrl,
+    String? krishiCardDocUrl,
+    String? adminNote,
+    String? nidStatus,
+    String? nidRejectionNote,
+    int? totalCompletedOrders,
+    double? rating,
+    int? reviewsCount,
+  }) {
+    return FarmerProfile(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      photoUrl: photoUrl ?? this.photoUrl,
+      district: district ?? this.district,
+      upazila: upazila ?? this.upazila,
+      union: union ?? this.union,
+      address: address ?? this.address,
+      farmerType: farmerType ?? this.farmerType,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      nidOrDoc: nidOrDoc ?? this.nidOrDoc,
+      nidFrontUrl: nidFrontUrl ?? this.nidFrontUrl,
+      nidBackUrl: nidBackUrl ?? this.nidBackUrl,
+      krishiCardDocUrl: krishiCardDocUrl ?? this.krishiCardDocUrl,
+      adminNote: adminNote ?? this.adminNote,
+      nidStatus: nidStatus ?? this.nidStatus,
+      nidRejectionNote: nidRejectionNote ?? this.nidRejectionNote,
+      totalCompletedOrders: totalCompletedOrders ?? this.totalCompletedOrders,
+      rating: rating ?? this.rating,
+      reviewsCount: reviewsCount ?? this.reviewsCount,
+    );
+  }
 }
 
 class BuyerProfile {
@@ -233,6 +283,7 @@ class BuyerProfile {
   final String address;
   final String tradeInfo;
   final String tradeLicenseUrl;
+  final String nidOrDoc;
   final String nidFrontUrl;
   final String nidBackUrl;
   final VerificationStatus verificationStatus;
@@ -257,9 +308,10 @@ class BuyerProfile {
     required this.address,
     this.tradeInfo = '',
     this.tradeLicenseUrl = '',
+    this.nidOrDoc = '',
     this.nidFrontUrl = '',
     this.nidBackUrl = '',
-    this.verificationStatus = VerificationStatus.verified,
+    this.verificationStatus = VerificationStatus.pending,
     this.adminNote = '',
     this.nidStatus = 'pending',
     this.nidRejectionNote = '',
@@ -270,16 +322,18 @@ class BuyerProfile {
   });
 
   factory BuyerProfile.fromBackendMap(Map<String, dynamic> json) {
-    VerificationStatus vStatus = VerificationStatus.verified;
-    final rawStatus = (json['verification_status'] ?? '').toString().toLowerCase();
-    if (rawStatus == 'pending') {
-      vStatus = VerificationStatus.pending;
+    VerificationStatus vStatus = VerificationStatus.pending;
+    final rawStatus = (json['verification_status'] ?? '').toString().toLowerCase().replaceAll('_', '');
+    if (rawStatus == 'verified') {
+      vStatus = VerificationStatus.verified;
     } else if (rawStatus == 'inprogress') {
       vStatus = VerificationStatus.inProgress;
     } else if (rawStatus == 'rejected') {
       vStatus = VerificationStatus.rejected;
     } else if (rawStatus == 'suspended') {
       vStatus = VerificationStatus.suspended;
+    } else {
+      vStatus = VerificationStatus.pending;
     }
 
     return BuyerProfile(
@@ -295,6 +349,7 @@ class BuyerProfile {
       address: json['address']?.toString() ?? '',
       tradeInfo: json['trade_info']?.toString() ?? '',
       tradeLicenseUrl: json['trade_license_url']?.toString() ?? '',
+      nidOrDoc: json['nid_or_doc']?.toString() ?? '',
       nidFrontUrl: json['nid_front_url']?.toString() ?? '',
       nidBackUrl: json['nid_back_url']?.toString() ?? '',
       verificationStatus: vStatus,
@@ -313,6 +368,58 @@ class BuyerProfile {
       paymentReliability: (json['payment_reliability'] is num)
           ? (json['payment_reliability'] as num).toInt()
           : 100,
+    );
+  }
+
+  BuyerProfile copyWith({
+    String? id,
+    String? name,
+    String? phone,
+    String? email,
+    String? photoUrl,
+    String? businessName,
+    String? businessType,
+    String? district,
+    String? area,
+    String? address,
+    String? tradeInfo,
+    String? tradeLicenseUrl,
+    String? nidOrDoc,
+    String? nidFrontUrl,
+    String? nidBackUrl,
+    VerificationStatus? verificationStatus,
+    String? adminNote,
+    String? nidStatus,
+    String? nidRejectionNote,
+    int? completedOrders,
+    double? rating,
+    int? reviewsCount,
+    int? paymentReliability,
+  }) {
+    return BuyerProfile(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      photoUrl: photoUrl ?? this.photoUrl,
+      businessName: businessName ?? this.businessName,
+      businessType: businessType ?? this.businessType,
+      district: district ?? this.district,
+      area: area ?? this.area,
+      address: address ?? this.address,
+      tradeInfo: tradeInfo ?? this.tradeInfo,
+      tradeLicenseUrl: tradeLicenseUrl ?? this.tradeLicenseUrl,
+      nidOrDoc: nidOrDoc ?? this.nidOrDoc,
+      nidFrontUrl: nidFrontUrl ?? this.nidFrontUrl,
+      nidBackUrl: nidBackUrl ?? this.nidBackUrl,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      adminNote: adminNote ?? this.adminNote,
+      nidStatus: nidStatus ?? this.nidStatus,
+      nidRejectionNote: nidRejectionNote ?? this.nidRejectionNote,
+      completedOrders: completedOrders ?? this.completedOrders,
+      rating: rating ?? this.rating,
+      reviewsCount: reviewsCount ?? this.reviewsCount,
+      paymentReliability: paymentReliability ?? this.paymentReliability,
     );
   }
 }
@@ -593,6 +700,7 @@ class NotificationItem {
   final String? relatedOrderId;
   final String? relatedDemandId;
   final String? targetUserId;
+  final String notificationType;
 
   NotificationItem({
     required this.id,
@@ -604,8 +712,52 @@ class NotificationItem {
     this.relatedOrderId,
     this.relatedDemandId,
     this.targetUserId,
+    this.notificationType = 'info',
   });
+
+  factory NotificationItem.fromBackendMap(Map<String, dynamic> json) {
+    final type = (json['notification_type'] ?? 'info').toString();
+    final relId = (json['related_id'] ?? '').toString();
+    return NotificationItem(
+      id: (json['id'] ?? '').toString(),
+      title: (json['title'] ?? '').toString(),
+      message: (json['message'] ?? '').toString(),
+      timestamp: (json['created_at'] ?? 'এখনই').toString(),
+      isRead: json['is_read'] == true,
+      notificationType: type,
+      targetUserId: (json['user_id'] ?? '').toString(),
+      relatedOrderId: type == 'order' ? relId : null,
+      relatedDemandId: (type == 'demand' || type == 'offer') ? relId : null,
+    );
+  }
+
+  NotificationItem copyWith({
+    String? id,
+    UserRole? targetRole,
+    String? title,
+    String? message,
+    String? timestamp,
+    bool? isRead,
+    String? relatedOrderId,
+    String? relatedDemandId,
+    String? targetUserId,
+    String? notificationType,
+  }) {
+    return NotificationItem(
+      id: id ?? this.id,
+      targetRole: targetRole ?? this.targetRole,
+      title: title ?? this.title,
+      message: message ?? this.message,
+      timestamp: timestamp ?? this.timestamp,
+      isRead: isRead ?? this.isRead,
+      relatedOrderId: relatedOrderId ?? this.relatedOrderId,
+      relatedDemandId: relatedDemandId ?? this.relatedDemandId,
+      targetUserId: targetUserId ?? this.targetUserId,
+      notificationType: notificationType ?? this.notificationType,
+    );
+  }
 }
+
 
 class ChatMessage {
   final String id;

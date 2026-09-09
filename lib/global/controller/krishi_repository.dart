@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../Model/krishi_models.dart';
 import '../../Utils/StaticString/static_string.dart';
@@ -47,6 +48,35 @@ class KrishiRepository extends ChangeNotifier {
     notifyListeners();
   }
 
+  void onNidReuploaded({
+    required String nidNumber,
+    required String nidFrontUrl,
+    required String nidBackUrl,
+  }) {
+    if (_currentRole == UserRole.farmer) {
+      _currentFarmer = _currentFarmer.copyWith(
+        verificationStatus: VerificationStatus.pending,
+        adminNote: 'ইউজার নতুন এনআইডি জমা দিয়েছেন (যাচাই প্রয়োজন)',
+        nidStatus: 'pending',
+        nidRejectionNote: '',
+        nidFrontUrl: nidFrontUrl,
+        nidBackUrl: nidBackUrl,
+        nidOrDoc: nidNumber.isNotEmpty ? nidNumber : _currentFarmer.nidOrDoc,
+      );
+    } else {
+      _currentBuyer = _currentBuyer.copyWith(
+        verificationStatus: VerificationStatus.pending,
+        adminNote: 'ইউজার নতুন এনআইডি জমা দিয়েছেন (যাচাই প্রয়োজন)',
+        nidStatus: 'pending',
+        nidRejectionNote: '',
+        nidFrontUrl: nidFrontUrl,
+        nidBackUrl: nidBackUrl,
+        nidOrDoc: nidNumber.isNotEmpty ? nidNumber : _currentBuyer.nidOrDoc,
+      );
+    }
+    notifyListeners();
+  }
+
   Future<void> loadProfileFromBackend() async {
     final isLoggedIn = await SharedPrefHelper.isLoggedIn();
     if (!isLoggedIn) return;
@@ -71,20 +101,95 @@ class KrishiRepository extends ChangeNotifier {
       if (res["success"] == true && res["data"] is Map<String, dynamic>) {
         final data = res["data"] as Map<String, dynamic>;
         final userRole = (data["role"] ?? role).toString().toLowerCase();
+        final rawStatus = data["verification_status"]?.toString() ?? "pending";
 
         if (userRole == "farmer") {
           _currentFarmer = FarmerProfile.fromBackendMap(data);
         } else {
           _currentBuyer = BuyerProfile.fromBackendMap(data);
         }
+
+        await SharedPrefHelper.saveVerificationStatus(rawStatus);
       }
     } catch (e) {
       debugPrint("Error loading profile from backend: $e");
     } finally {
       isProfileLoading = false;
       notifyListeners();
+      // Fetch latest notifications whenever profile loads
+      fetchNotificationsFromBackend();
     }
   }
+
+  bool isNotificationsLoading = false;
+
+  Future<void> fetchNotificationsFromBackend() async {
+    final isLoggedIn = await SharedPrefHelper.isLoggedIn();
+    if (!isLoggedIn) return;
+
+    final token = await SharedPrefHelper.getToken();
+    final userId = await SharedPrefHelper.getUserId();
+
+    isNotificationsLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await ApiClient.fetchNotifications(
+        token: token.isNotEmpty ? token : null,
+        userId: userId.isNotEmpty ? userId : null,
+      );
+
+      if (res["success"] == true && res["data"] is List) {
+        final list = res["data"] as List;
+        final fetched = list.map((item) {
+          if (item is Map<String, dynamic>) {
+            return NotificationItem.fromBackendMap(item);
+          } else if (item is Map) {
+            return NotificationItem.fromBackendMap(Map<String, dynamic>.from(item));
+          }
+          return null;
+        }).whereType<NotificationItem>().toList();
+
+        _notifications = fetched;
+      }
+    } catch (e) {
+      debugPrint("Error fetching notifications from backend: $e");
+    } finally {
+      isNotificationsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> markNotificationAsRead(String id) async {
+    final index = _notifications.indexWhere((n) => n.id == id);
+    if (index != -1) {
+      _notifications[index] = _notifications[index].copyWith(isRead: true);
+      notifyListeners();
+    }
+    final token = await SharedPrefHelper.getToken();
+    await ApiClient.markNotificationRead(id, token: token.isNotEmpty ? token : null);
+  }
+
+  Future<void> markAllNotificationsAsRead() async {
+    _notifications = _notifications.map((n) => n.copyWith(isRead: true)).toList();
+    notifyListeners();
+
+    final token = await SharedPrefHelper.getToken();
+    final userId = await SharedPrefHelper.getUserId();
+    await ApiClient.markAllNotificationsRead(
+      token: token.isNotEmpty ? token : null,
+      userId: userId.isNotEmpty ? userId : null,
+    );
+  }
+
+  Future<void> deleteNotification(String id) async {
+    _notifications.removeWhere((n) => n.id == id);
+    notifyListeners();
+
+    final token = await SharedPrefHelper.getToken();
+    await ApiClient.deleteNotification(id, token: token.isNotEmpty ? token : null);
+  }
+
 
   List<FarmerProfile> _farmers = [];
   List<FarmerProfile> get farmers => _farmers;
@@ -133,9 +238,27 @@ class KrishiRepository extends ChangeNotifier {
 
   String? snackbarMessage;
 
+  Timer? _periodicSyncTimer;
+
+  void startPeriodicSync() {
+    _periodicSyncTimer?.cancel();
+    _periodicSyncTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      final isLoggedIn = await SharedPrefHelper.isLoggedIn();
+      if (isLoggedIn) {
+        loadProfileFromBackend();
+      }
+    });
+  }
+
+  void stopPeriodicSync() {
+    _periodicSyncTimer?.cancel();
+    _periodicSyncTimer = null;
+  }
+
   KrishiRepository() {
     _initData();
     loadProfileFromBackend();
+    startPeriodicSync();
   }
 
   void _initData() {
@@ -542,52 +665,7 @@ class KrishiRepository extends ChangeNotifier {
       ),
     ];
 
-    _notifications = [
-      NotificationItem(
-        id: 'notif_1',
-        title: 'অর্ডার নিশ্চিত করতে ডিপোজিট পে করুন',
-        message: 'অর্ডার #KB-1011-এর জন্য ২০% ডিপোজিট (৳৪২০০০) প্রদান করুন।',
-        timestamp: 'এখনই',
-      ),
-      NotificationItem(
-        id: 'notif_2',
-        title: 'অফার গৃহীত হয়েছে! অর্ডার #KB-1011',
-        message:
-            'কাওরান বাজার পাইকারি আড়ত আপনার অফার গ্রহণ করেছে। ডিপোজিট জমা হলে ফসল তোলার কাজ শুরু করুন।',
-        timestamp: 'এখনই',
-      ),
-      NotificationItem(
-        id: 'notif_3',
-        title: 'আপনার চাহিদায় নতুন অফার এসেছে!',
-        message:
-            'কৃষক মো: আব্দুল রহিম 1500.0 পিস / সংখ্যা বাঁধাকপি (Cabbage) সরবরাহের অফার দিয়েছেন (৳22.0/পিস / সংখ্যা)।',
-        timestamp: 'এখনই',
-      ),
-      NotificationItem(
-        id: 'notif_4',
-        title: 'স্বাগতম কৃষিবাজারে! 🌾',
-        message: 'বাংলাদেশের প্রথম সরাসরি কৃষক-ক্রেতা ডিজিটাল প্ল্যাটফর্ম।',
-        timestamp: 'আজ',
-      ),
-      NotificationItem(
-        id: 'notif_5',
-        title: 'অর্ডার #KB-1002 ট্রাকে রওনা হয়েছে 🚚',
-        message: 'বগুড়া থেকে তেজগাঁওয়ের উদ্দেশ্যে ডায়মন্ড আলুর ট্রাক চলছে।',
-        timestamp: '২ ঘণ্টা আগে',
-      ),
-      NotificationItem(
-        id: 'notif_6',
-        title: 'আপনার অফার গৃহীত হয়েছে! 🎉',
-        message: 'কাওরান বাজার আড়ত আপনার ৮০০ কেজি টমেটোর অফার গ্রহণ করেছে।',
-        timestamp: 'আজ সকাল',
-      ),
-      NotificationItem(
-        id: 'notif_7',
-        title: 'নতুন সমস্যা রিপোর্ট হয়েছে ⚠️',
-        message: 'অর্ডার #KB-1006 এ ওজনে গরমিল রিপোর্ট এসেছে। তদন্ত করুন।',
-        timestamp: 'গতকাল',
-      ),
-    ];
+    _notifications = [];
 
     _chatMessages = [
       ChatMessage(
@@ -775,7 +853,9 @@ class KrishiRepository extends ChangeNotifier {
   void openNotifications() {
     showNotificationsSheet = true;
     notifyListeners();
+    fetchNotificationsFromBackend();
   }
+
 
   void closeNotifications() {
     showNotificationsSheet = false;
@@ -1199,5 +1279,11 @@ class KrishiRepository extends ChangeNotifier {
     );
     _chatMessages.add(newMsg);
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    stopPeriodicSync();
+    super.dispose();
   }
 }
