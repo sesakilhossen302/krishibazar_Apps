@@ -618,6 +618,8 @@ class BuyerDemand {
   final String buyerBusinessName;
   final String buyerDistrict;
   final bool buyerVerified;
+  final String buyerPhotoUrl;
+  final String buyerPhone;
   final String productTitle;
   final ProductCategory category;
   final double requiredQuantity;
@@ -640,6 +642,8 @@ class BuyerDemand {
     required this.buyerBusinessName,
     required this.buyerDistrict,
     this.buyerVerified = true,
+    this.buyerPhotoUrl = '',
+    this.buyerPhone = '',
     required this.productTitle,
     required this.category,
     required this.requiredQuantity,
@@ -730,6 +734,8 @@ class BuyerDemand {
       buyerBusinessName: (json['buyer_business_name'] ?? json['buyer_name'] ?? 'ব্যবসা প্রতিষ্ঠান').toString(),
       buyerDistrict: (json['buyer_district'] ?? json['required_location'] ?? 'ঢাকা').toString(),
       buyerVerified: json['buyer_verified'] == true || json['buyer_verified'] == null,
+      buyerPhotoUrl: (json['buyer_photo_url'] ?? '').toString(),
+      buyerPhone: (json['buyer_phone'] ?? '').toString(),
       productTitle: (json['product_title'] ?? '').toString(),
       category: cat,
       requiredQuantity: (json['required_quantity'] is num)

@@ -76,6 +76,7 @@ class FarmerDemandsScreen extends StatelessWidget {
                       final demand = demands[index];
                       return DemandCard(
                         demand: demand,
+                        onTap: () => controller.openDemandDetail(demand),
                         onAction: () => controller.openOffer(demand),
                         actionText: 'আমি দিতে পারব (অফার পাঠান)',
                         isFarmerView: true,

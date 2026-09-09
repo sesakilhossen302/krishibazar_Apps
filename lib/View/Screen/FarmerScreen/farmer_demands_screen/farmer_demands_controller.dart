@@ -9,5 +9,6 @@ class FarmerDemandsController extends ChangeNotifier {
 
   List<BuyerDemand> get demands => repository.demands;
 
+  void openDemandDetail(BuyerDemand demand) => repository.openDemandDetail(demand);
   void openOffer(BuyerDemand demand) => repository.openOfferDialog(demand);
 }

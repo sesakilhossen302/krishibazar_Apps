@@ -12,6 +12,7 @@ import '../BuyerScreen/buyer_search_screen.dart';
 import '../Dialogs/add_demand_dialog.dart';
 import '../Dialogs/add_product_dialog/add_product_dialog.dart';
 import '../Dialogs/buyer_offer_management_dialog.dart';
+import '../Dialogs/demand_detail_dialog/demand_detail_dialog.dart';
 import '../Dialogs/dispute_report_dialog.dart';
 import '../Dialogs/farmer_send_offer_dialog.dart';
 import '../Dialogs/notifications_dialog.dart';
@@ -115,6 +116,8 @@ class MainScreen extends StatelessWidget {
             FarmerSendOfferDialog(demand: controller.activeDemandForOffer!),
           if (controller.activeDemandForOfferManagement != null)
             BuyerOfferManagementDialog(demand: controller.activeDemandForOfferManagement!),
+          if (controller.activeDemandForDetail != null)
+            DemandDetailDialog(demand: controller.activeDemandForDetail!),
           if (controller.activeOrderForDetail != null)
             OrderDetailDialog(order: controller.activeOrderForDetail!),
           if (controller.activeOrderForChat != null)

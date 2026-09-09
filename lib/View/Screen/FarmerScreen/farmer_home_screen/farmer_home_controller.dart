@@ -15,6 +15,7 @@ class FarmerHomeController extends ChangeNotifier {
   void openAddProduct() => repository.openAddProductDialog();
   void goToDemandsTab() => repository.setFarmerTab(2);
   void goToOrdersTab() => repository.setFarmerTab(3);
+  void openDemandDetail(BuyerDemand demand) => repository.openDemandDetail(demand);
   void openOffer(BuyerDemand demand) => repository.openOfferDialog(demand);
   void openOrder(MarketplaceOrder order) => repository.openOrderDetail(order);
 }

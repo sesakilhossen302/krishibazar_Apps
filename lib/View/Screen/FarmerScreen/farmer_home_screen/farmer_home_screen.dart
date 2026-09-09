@@ -343,6 +343,7 @@ class FarmerHomeScreen extends StatelessWidget {
             ...demands.take(3).map(
                   (demand) => _buildDemandCard(
                     demand: demand,
+                    onTap: () => controller.openDemandDetail(demand),
                     onOffer: () => controller.openOffer(demand),
                   ),
                 ),
@@ -450,11 +451,11 @@ class FarmerHomeScreen extends StatelessWidget {
 
   Widget _buildDemandCard({
     required BuyerDemand demand,
+    required VoidCallback onTap,
     required VoidCallback onOffer,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -467,99 +468,138 @@ class FarmerHomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  demand.productTitle,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF7ED),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFFFEDD5)),
-                ),
-                child: const Text(
-                  'জরুরী',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFEA580C),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              const Icon(Icons.location_on, color: Colors.redAccent, size: 14),
-              const SizedBox(width: 4),
-              Text(
-                demand.requiredLocation,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF64748B),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'বাজেট',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '৳${demand.minExpectedPrice.toStringAsFixed(0)}-${demand.maxExpectedPrice.toStringAsFixed(0)}/${demand.unit.labelBn}',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            demand.productTitle,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            '${demand.buyerBusinessName} • ${demand.buyerDistrict}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              ElevatedButton(
-                onPressed: onOffer,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF166534),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF7ED),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFFEDD5)),
+                      ),
+                      child: Text(
+                        demand.qualityGrade.labelBn,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFEA580C),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Text(
-                  'অফার দিন',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, color: Colors.redAccent, size: 14),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        demand.requiredLocation,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const Text(
+                      'বিস্তারিত দেখুন ➔',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF166534),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'বাজেট',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '৳${demand.minExpectedPrice.toStringAsFixed(0)}-${demand.maxExpectedPrice.toStringAsFixed(0)}/${demand.unit.labelBn}',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                    ElevatedButton(
+                      onPressed: onOffer,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF166534),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'অফার দিন',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }

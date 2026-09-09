@@ -7,6 +7,7 @@ class DemandCard extends StatelessWidget {
   final String actionText;
   final bool isFarmerView;
   final VoidCallback? onDelete;
+  final VoidCallback? onTap;
 
   const DemandCard({
     super.key,
@@ -15,6 +16,7 @@ class DemandCard extends StatelessWidget {
     required this.actionText,
     this.isFarmerView = true,
     this.onDelete,
+    this.onTap,
   });
 
   String _toBnDigits(dynamic input) {
@@ -37,7 +39,6 @@ class DemandCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -50,10 +51,18 @@ class DemandCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Header Row (Icon + Title/Subtitle + Grade Badge + Delete)
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Header Row (Icon + Title/Subtitle + Grade Badge + Delete)
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -267,6 +276,9 @@ class DemandCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  ),
+),
+);
   }
 }

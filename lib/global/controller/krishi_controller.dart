@@ -195,6 +195,7 @@ class KrishiController extends ChangeNotifier {
   bool showRoleSwitcherDialog = false;
 
   ProductListing? activeProductForDetail;
+  BuyerDemand? activeDemandForDetail;
   BuyerDemand? activeDemandForOffer;
   BuyerDemand? activeDemandForOfferManagement;
   MarketplaceOrder? activeOrderForDetail;
@@ -490,7 +491,18 @@ class KrishiController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void openDemandDetail(BuyerDemand demand) {
+    activeDemandForDetail = demand;
+    notifyListeners();
+  }
+
+  void closeDemandDetail() {
+    activeDemandForDetail = null;
+    notifyListeners();
+  }
+
   void openOfferDialog(BuyerDemand demand) {
+    activeDemandForDetail = null;
     activeDemandForOffer = demand;
     notifyListeners();
   }
