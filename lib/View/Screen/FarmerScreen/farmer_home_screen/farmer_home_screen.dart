@@ -649,22 +649,23 @@ class FarmerHomeScreen extends StatelessWidget {
       depositBadgeText = 'বাতিলকৃত ❌';
       depositBadgeBg = const Color(0xFFFEE2E2);
       depositBadgeTextCol = const Color(0xFFDC2626);
-    } else if (order.orderStatus == OrderStatus.completed) {
-      statusBadgeText = 'অর্ডার সম্পন্ন 🎉';
+    } else if (order.farmerPayoutStatus == 'completed') {
+      statusBadgeText = 'পেআউট সম্পন্ন ✅';
       statusBadgeBg = const Color(0xFFDCFCE7);
       statusBadgeTextCol = const Color(0xFF166534);
       statusBadgeIcon = Icons.check_circle;
       depositBadgeText = 'পরিশোধিত ✅';
       depositBadgeBg = const Color(0xFFDCFCE7);
       depositBadgeTextCol = const Color(0xFF166534);
-    } else if (order.orderStatus == OrderStatus.delivered) {
-      statusBadgeText = 'ডেলিভারি সম্পন্ন 📦';
-      statusBadgeBg = const Color(0xFFDCFCE7);
-      statusBadgeTextCol = const Color(0xFF166534);
-      statusBadgeIcon = Icons.check_circle;
-      depositBadgeText = 'খালাস বাকি ⏳';
-      depositBadgeBg = const Color(0xFFDCFCE7);
-      depositBadgeTextCol = const Color(0xFF166534);
+    } else if (order.orderStatus == OrderStatus.delivered ||
+        order.orderStatus == OrderStatus.completed) {
+      statusBadgeText = 'পেআউট পেন্ডিং ⏳';
+      statusBadgeBg = const Color(0xFFFFF7ED);
+      statusBadgeTextCol = const Color(0xFFEA580C);
+      statusBadgeIcon = Icons.hourglass_top;
+      depositBadgeText = 'পেআউট বাকি ⏳';
+      depositBadgeBg = const Color(0xFFFFF7ED);
+      depositBadgeTextCol = const Color(0xFFEA580C);
     } else if (order.orderStatus == OrderStatus.inTransit) {
       statusBadgeText = 'ইন ট্রানজিট 🚚';
       statusBadgeBg = const Color(0xFFE0F2FE);
@@ -713,7 +714,7 @@ class FarmerHomeScreen extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -726,33 +727,52 @@ class FarmerHomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Flexible(
-                  child: Text(
-                    '#${order.orderNumber} • ${order.createdAt}',
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF334155),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '#${order.orderNumber}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF166534),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          '• ${order.createdAt}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF64748B),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
                   decoration: BoxDecoration(
                     color: statusBadgeBg,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(statusBadgeIcon, color: statusBadgeTextCol, size: 13),
-                      const SizedBox(width: 4),
+                      Icon(
+                        statusBadgeIcon,
+                        size: 11,
+                        color: statusBadgeTextCol,
+                      ),
+                      const SizedBox(width: 3),
                       Text(
                         statusBadgeText,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.bold,
                           color: statusBadgeTextCol,
                         ),
@@ -788,17 +808,17 @@ class FarmerHomeScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'মোট মূল্য',
-                      style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                    Text(
+                      'মোট: ৳${(order.productAmount > 0 ? order.productAmount : order.totalAmount).toStringAsFixed(0)} (৫% ফি বাদে)',
+                      style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '৳${order.totalAmount.toStringAsFixed(0)}',
+                      'পাবেন: ৳${(order.farmerPayoutAmount > 0 ? order.farmerPayoutAmount : order.totalAmount * 0.95).toStringAsFixed(0)}',
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF0F172A),
+                        color: Color(0xFF166534),
                       ),
                     ),
                   ],

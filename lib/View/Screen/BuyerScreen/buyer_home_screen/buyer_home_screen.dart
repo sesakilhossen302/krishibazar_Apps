@@ -728,11 +728,12 @@ class BuyerHomeScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'মোট মূল্য',
-                                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                  'মোট প্রদেয় (+৫% ফি সহ)',
+                                  style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
                                 ),
+                                const SizedBox(height: 2),
                                 Text(
-                                  '৳${_toBnDigits(order.totalAmount.toInt())}',
+                                  '৳${_toBnDigits((order.buyerTotalAmount > 0 ? order.buyerTotalAmount : order.totalAmount * 1.05).toInt())}',
                                   style: const TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,

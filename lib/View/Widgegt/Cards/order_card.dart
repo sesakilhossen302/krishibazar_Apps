@@ -62,22 +62,23 @@ class OrderCard extends StatelessWidget {
       depositBadgeText = 'বাতিলকৃত ❌';
       depositBadgeBg = const Color(0xFFFEE2E2);
       depositBadgeTextCol = const Color(0xFFDC2626);
-    } else if (order.orderStatus == OrderStatus.completed) {
-      statusBadgeText = 'অর্ডার সম্পন্ন 🎉';
+    } else if (order.farmerPayoutStatus == 'completed') {
+      statusBadgeText = 'পেআউট সম্পন্ন ✅';
       statusBadgeBg = const Color(0xFFDCFCE7);
       statusBadgeTextCol = const Color(0xFF166534);
       statusBadgeIcon = Icons.check_circle;
       depositBadgeText = 'পরিশোধিত ✅';
       depositBadgeBg = const Color(0xFFDCFCE7);
       depositBadgeTextCol = const Color(0xFF166534);
-    } else if (order.orderStatus == OrderStatus.delivered) {
-      statusBadgeText = 'ডেলিভারি সম্পন্ন 📦';
-      statusBadgeBg = const Color(0xFFDCFCE7);
-      statusBadgeTextCol = const Color(0xFF166534);
-      statusBadgeIcon = Icons.check_circle;
-      depositBadgeText = 'খালাস বাকি ⏳';
-      depositBadgeBg = const Color(0xFFDCFCE7);
-      depositBadgeTextCol = const Color(0xFF166534);
+    } else if (order.orderStatus == OrderStatus.delivered ||
+        order.orderStatus == OrderStatus.completed) {
+      statusBadgeText = 'পেআউট পেন্ডিং ⏳';
+      statusBadgeBg = const Color(0xFFFFF7ED);
+      statusBadgeTextCol = const Color(0xFFEA580C);
+      statusBadgeIcon = Icons.hourglass_top;
+      depositBadgeText = 'পেআউট বাকি ⏳';
+      depositBadgeBg = const Color(0xFFFFF7ED);
+      depositBadgeTextCol = const Color(0xFFEA580C);
     } else if (order.orderStatus == OrderStatus.inTransit) {
       statusBadgeText = 'ইন ট্রানজিট 🚚';
       statusBadgeBg = const Color(0xFFE0F2FE);
@@ -231,15 +232,15 @@ class OrderCard extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'মোট মূল্য',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      Text(
+                        'মোট: ৳${_toBnDigits((order.productAmount > 0 ? order.productAmount : order.totalAmount).toInt())}',
+                        style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '৳${_toBnDigits(order.totalAmount.toInt())}',
+                        'পাবেন: ৳${_toBnDigits((order.farmerPayoutAmount > 0 ? order.farmerPayoutAmount : order.totalAmount * 0.95).toInt())}',
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF166534),
                         ),

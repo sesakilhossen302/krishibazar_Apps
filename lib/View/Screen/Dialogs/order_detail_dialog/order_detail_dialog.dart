@@ -82,7 +82,7 @@ class OrderDetailDialog extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 1. Order Status Box
-                _buildStatusBox(currentOrder),
+                _buildStatusBox(currentOrder, isFarmer),
                 const SizedBox(height: 14),
 
                 // 2. Order Parties Box ("অর্ডারের পক্ষসমূহ")
@@ -199,7 +199,7 @@ class OrderDetailDialog extends StatelessWidget {
   }
 
   // --- Helper 1: Order Current Status Box ---
-  Widget _buildStatusBox(MarketplaceOrder currentOrder) {
+  Widget _buildStatusBox(MarketplaceOrder currentOrder, bool isFarmer) {
     final isPaid =
         currentOrder.isDepositPaid || currentOrder.paymentStatus == 'confirmed';
     final isPaymentPending =
@@ -227,6 +227,18 @@ class OrderDetailDialog extends StatelessWidget {
       statusBadgeBg = const Color(0xFFFEE2E2);
       statusBadgeTextCol = const Color(0xFFDC2626);
       statusBadgeIcon = Icons.cancel;
+    } else if (isFarmer && currentOrder.farmerPayoutStatus == 'completed') {
+      statusBadgeText = 'পেআউট সম্পন্ন ✅';
+      statusBadgeBg = const Color(0xFFDCFCE7);
+      statusBadgeTextCol = const Color(0xFF166534);
+      statusBadgeIcon = Icons.check_circle;
+    } else if (isFarmer &&
+        (currentOrder.orderStatus == OrderStatus.delivered ||
+            currentOrder.orderStatus == OrderStatus.completed)) {
+      statusBadgeText = 'পেআউট পেন্ডিং ⏳';
+      statusBadgeBg = const Color(0xFFFFF7ED);
+      statusBadgeTextCol = const Color(0xFFEA580C);
+      statusBadgeIcon = Icons.hourglass_top;
     } else if (currentOrder.orderStatus == OrderStatus.completed) {
       statusBadgeText = 'অর্ডার সম্পন্ন 🎉';
       statusBadgeBg = const Color(0xFFDCFCE7);
@@ -821,25 +833,156 @@ class OrderDetailDialog extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          _buildRowText(
-            'মোট চুক্তি মূল্য:',
-            '৳${currentOrder.totalAmount.toStringAsFixed(0)}',
-            isBold: true,
-          ),
-          const SizedBox(height: 6),
-          _buildRowText(
-            'প্রয়োজনীয় ২০% ডিপোজিট:',
-            '৳${currentOrder.depositRequired.toStringAsFixed(0)}',
-            color: const Color(0xFFEA580C),
-            isBold: true,
-          ),
-          const SizedBox(height: 6),
-          _buildRowText(
-            'বাকি ৮০% (ডেলিভারির পর):',
-            '৳${(currentOrder.totalAmount - currentOrder.depositRequired).toStringAsFixed(0)}',
-            isBold: true,
-          ),
+          if (isFarmer) ...[
+            _buildRowText(
+              'পণ্যের বিক্রয় মূল্য:',
+              '৳${(currentOrder.productAmount > 0 ? currentOrder.productAmount : currentOrder.totalAmount).toStringAsFixed(0)}',
+              isBold: true,
+            ),
+            const SizedBox(height: 6),
+            _buildRowText(
+              'প্ল্যাটফর্ম সার্ভিস ফি (-৫%):',
+              '- ৳${(currentOrder.farmerServiceFee > 0 ? currentOrder.farmerServiceFee : currentOrder.totalAmount * 0.05).toStringAsFixed(0)}',
+              color: const Color(0xFFEA580C),
+              isBold: true,
+            ),
+            const SizedBox(height: 6),
+            const Divider(height: 14, color: Color(0xFFE2E8F0)),
+            const SizedBox(height: 4),
+            _buildRowText(
+              'নিট পাওনা (আপনি মোট পাবেন):',
+              '৳${(currentOrder.farmerPayoutAmount > 0 ? currentOrder.farmerPayoutAmount : currentOrder.totalAmount * 0.95).toStringAsFixed(0)}',
+              color: const Color(0xFF166534),
+              isBold: true,
+            ),
+          ] else ...[
+            _buildRowText(
+              'পণ্যের চুক্তি মূল্য:',
+              '৳${(currentOrder.productAmount > 0 ? currentOrder.productAmount : currentOrder.totalAmount).toStringAsFixed(0)}',
+              isBold: true,
+            ),
+            const SizedBox(height: 6),
+            _buildRowText(
+              'প্ল্যাটফর্ম সার্ভিস চার্জ (+৫%):',
+              '+ ৳${(currentOrder.buyerServiceFee > 0 ? currentOrder.buyerServiceFee : currentOrder.totalAmount * 0.05).toStringAsFixed(0)}',
+              color: const Color(0xFFEA580C),
+              isBold: true,
+            ),
+            const SizedBox(height: 6),
+            const Divider(height: 14, color: Color(0xFFE2E8F0)),
+            const SizedBox(height: 4),
+            _buildRowText(
+              'মোট প্রদেয়:',
+              '৳${(currentOrder.buyerTotalAmount > 0 ? currentOrder.buyerTotalAmount : currentOrder.totalAmount * 1.05).toStringAsFixed(0)}',
+              color: const Color(0xFF0F172A),
+              isBold: true,
+            ),
+            const SizedBox(height: 6),
+            _buildRowText(
+              'প্রয়োজনীয় ২০% ডিপোজিট:',
+              '৳${currentOrder.depositRequired.toStringAsFixed(0)}',
+              color: const Color(0xFFEA580C),
+              isBold: true,
+            ),
+            const SizedBox(height: 6),
+            _buildRowText(
+              'অবশিষ্ট প্রদেয় (ডেলিভারির সময়):',
+              '৳${((currentOrder.buyerTotalAmount > 0 ? currentOrder.buyerTotalAmount : currentOrder.totalAmount * 1.05) - currentOrder.depositRequired).toStringAsFixed(0)}',
+              isBold: true,
+            ),
+          ],
           const SizedBox(height: 14),
+
+          // Post-delivery payout status notice for farmer
+          if (isFarmer &&
+              (currentOrder.orderStatus == OrderStatus.delivered ||
+                  currentOrder.orderStatus == OrderStatus.completed)) ...[
+            if (currentOrder.farmerPayoutStatus == 'completed') ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.check_circle, size: 16, color: Color(0xFF166534)),
+                        SizedBox(width: 8),
+                        Text(
+                          'টাকা পরিশোধিত / পেআউট সম্পন্ন ✅',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF166534),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'আপনার নিট পাওনা ৳${(currentOrder.farmerPayoutAmount > 0 ? currentOrder.farmerPayoutAmount : currentOrder.totalAmount * 0.95).toStringAsFixed(0)} টাকা সফলভাবে আপনার অ্যাকাউন্টে পরিশোধ করা হয়েছে।',
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF14532D)),
+                    ),
+                    if (currentOrder.farmerPayoutNotes.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'পেমেন্ট তথ্য: ${currentOrder.farmerPayoutNotes}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF15803D),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ] else ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.hourglass_top, size: 16, color: Color(0xFFD97706)),
+                        SizedBox(width: 8),
+                        Text(
+                          'পেআউট পেন্ডিং ⏳ (টাকা প্রক্রিয়াধীন)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF92400E),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'পণ্য ক্রেতার নিকট সফলভাবে ডেলিভারি হয়েছে। ডেলিভারি ম্যানের নিকট থেকে অবশিষ্ট নগদ টাকা প্রধান কার্যালয়ে পৌঁছানোর সাথে সাথে কৃষিবাজার এডমিন সরাসরি আপনার অ্যাকাউন্টে নিট ৳${(currentOrder.farmerPayoutAmount > 0 ? currentOrder.farmerPayoutAmount : currentOrder.totalAmount * 0.95).toStringAsFixed(0)} টাকা পাঠিয়ে দেবে।',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF78350F),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+          ],
 
           // Pay Deposit Button for Buyer when unpaid
           if (!isPaid &&
