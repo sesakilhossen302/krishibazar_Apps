@@ -1202,6 +1202,66 @@ class ApiClient {
       };
     }
   }
+
+  /// Fetch orders from backend
+  static Future<Map<String, dynamic>> fetchOrders({
+    String? token,
+    String? userId,
+    String? farmerId,
+    String? buyerId,
+    String? status,
+  }) async {
+    Uri uri = Uri.parse(ApiUrl.orders);
+    Map<String, String> queryParams = {};
+    if (userId != null && userId.isNotEmpty) queryParams['user_id'] = userId;
+    if (farmerId != null && farmerId.isNotEmpty) queryParams['farmer_id'] = farmerId;
+    if (buyerId != null && buyerId.isNotEmpty) queryParams['buyer_id'] = buyerId;
+    if (status != null && status.isNotEmpty) queryParams['status'] = status;
+
+    if (queryParams.isNotEmpty) {
+      uri = uri.replace(queryParameters: queryParams);
+    }
+
+    final headers = <String, String>{
+      "Content-Type": "application/json",
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    debugPrint('🚀 [API REQ] GET Orders: $uri');
+
+    try {
+      final response = await http.get(uri, headers: headers);
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+      debugPrint('📄 [API RES BODY]: ${response.body}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200) {
+        return {
+          "success": true,
+          "data": data is List ? data : [],
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "অর্ডার লোড করতে ব্যর্থ হয়েছে।"),
+          "data": [],
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - FETCH ORDERS]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+        "data": [],
+      };
+    }
+  }
 }
 
 

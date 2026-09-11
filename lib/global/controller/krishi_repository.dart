@@ -323,6 +323,53 @@ class KrishiRepository extends ChangeNotifier {
     }
   }
 
+  bool isLoadingOrders = false;
+
+  Future<void> fetchOrdersFromBackend({bool force = false}) async {
+    isLoadingOrders = true;
+    notifyListeners();
+
+    try {
+      final token = await SharedPrefHelper.getToken();
+      final userId = await SharedPrefHelper.getUserId();
+      final role = await SharedPrefHelper.getUserRole();
+
+      String? farmerId;
+      String? buyerId;
+      if (role == 'farmer' || _currentRole == UserRole.farmer) {
+        farmerId = userId.isNotEmpty ? userId : _currentFarmer.id;
+      } else if (role == 'buyer' || _currentRole == UserRole.buyer) {
+        buyerId = userId.isNotEmpty ? userId : _currentBuyer.id;
+      }
+
+      final res = await ApiClient.fetchOrders(
+        token: token.isNotEmpty ? token : null,
+        userId: userId.isNotEmpty ? userId : null,
+        farmerId: farmerId != null && farmerId.isNotEmpty ? farmerId : null,
+        buyerId: buyerId != null && buyerId.isNotEmpty ? buyerId : null,
+      );
+
+      if (res['success'] == true && res['data'] is List) {
+        final List list = res['data'];
+        final List<MarketplaceOrder> backendOrders = list.map((item) {
+          if (item is Map<String, dynamic>) {
+            return MarketplaceOrder.fromBackendMap(item);
+          } else if (item is Map) {
+            return MarketplaceOrder.fromBackendMap(Map<String, dynamic>.from(item));
+          }
+          return null;
+        }).whereType<MarketplaceOrder>().toList();
+
+        _orders = backendOrders;
+      }
+    } catch (e) {
+      debugPrint('Error fetching orders from backend: $e');
+    } finally {
+      isLoadingOrders = false;
+      notifyListeners();
+    }
+  }
+
   Timer? _periodicSyncTimer;
 
   void startPeriodicSync() {
@@ -334,6 +381,7 @@ class KrishiRepository extends ChangeNotifier {
         fetchProductsFromBackend();
         fetchDemandsFromBackend();
         fetchMyOffersFromBackend();
+        fetchOrdersFromBackend();
       }
     });
   }
@@ -349,6 +397,7 @@ class KrishiRepository extends ChangeNotifier {
     fetchProductsFromBackend();
     fetchDemandsFromBackend();
     fetchMyOffersFromBackend();
+    fetchOrdersFromBackend();
     startPeriodicSync();
   }
 

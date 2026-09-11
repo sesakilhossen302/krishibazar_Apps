@@ -1,31 +1,183 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../Utils/StaticString/static_string.dart';
 import '../../../../global/controller/krishi_repository.dart';
 import '../../../Widgegt/Cards/order_card.dart';
 import 'buyer_orders_controller.dart';
 
-class BuyerOrdersScreen extends StatelessWidget {
+class BuyerOrdersScreen extends StatefulWidget {
   const BuyerOrdersScreen({super.key});
+
+  @override
+  State<BuyerOrdersScreen> createState() => _BuyerOrdersScreenState();
+}
+
+class _BuyerOrdersScreenState extends State<BuyerOrdersScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<KrishiRepository>(context, listen: false).fetchOrdersFromBackend();
+      }
+    });
+  }
+
+  String _toBnDigits(dynamic input) {
+    const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    final str = input.toString();
+    final sb = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      final char = str[i];
+      final digit = int.tryParse(char);
+      if (digit != null) {
+        sb.write(bnDigits[digit]);
+      } else {
+        sb.write(char);
+      }
+    }
+    return sb.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
     final repo = context.watch<KrishiRepository>();
     final controller = BuyerOrdersController(repo);
     final myOrders = controller.myOrders;
+    final isLoading = repo.isLoadingOrders && myOrders.isEmpty;
 
-    return myOrders.isEmpty
-        ? const Center(child: Text(StaticString.noDataFound))
-        : ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: myOrders.length,
-            itemBuilder: (context, index) {
-              final order = myOrders[index];
-              return OrderCard(
-                order: order,
-                onTap: () => controller.openDetail(order),
-              );
-            },
-          );
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: RefreshIndicator(
+        color: const Color(0xFF166534),
+        onRefresh: () => repo.fetchOrdersFromBackend(force: true),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Section
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'আমার ক্রয় ও অর্ডারসমূহ (${_toBnDigits(myOrders.length)} টি)',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      if (repo.isLoadingOrders)
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF166534),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'ডেলিভারি ও এসক্রো পেমেন্ট ট্র্যাক করুন',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Orders Feed
+            Expanded(
+              child: isLoading
+                  ? const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(color: Color(0xFF166534)),
+                          SizedBox(height: 12),
+                          Text(
+                            'অর্ডার লোড হচ্ছে...',
+                            style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    )
+                  : myOrders.isEmpty
+                      ? SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF1F5F9),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.shopping_bag_outlined,
+                                    size: 48,
+                                    color: Color(0xFF94A3B8),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'আপনার কোনো ক্রয় অর্ডার নেই',
+                                  style: TextStyle(
+                                    color: Color(0xFF1E293B),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'কৃষকের অফার গ্রহণ করলে অথবা চাহিদা চূড়ান্ত হলে এখানে অর্ডার প্রদর্শিত হবে।',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                                ),
+                                const SizedBox(height: 20),
+                                OutlinedButton.icon(
+                                  onPressed: () => repo.fetchOrdersFromBackend(force: true),
+                                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                                  label: const Text('রিফ্রেশ করুন'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF166534),
+                                    side: const BorderSide(color: Color(0xFF166534)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                          itemCount: myOrders.length,
+                          itemBuilder: (context, index) {
+                            final order = myOrders[index];
+                            return OrderCard(
+                              order: order,
+                              onTap: () => controller.openDetail(order),
+                            );
+                          },
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

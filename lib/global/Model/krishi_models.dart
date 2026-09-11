@@ -962,6 +962,118 @@ class MarketplaceOrder {
     this.isRated = false,
     required this.createdAt,
   });
+
+  factory MarketplaceOrder.fromBackendMap(Map<String, dynamic> json) {
+    // Map category
+    ProductCategory cat = ProductCategory.vegetables;
+    final rawCat = (json['category'] ?? '').toString();
+    for (var c in ProductCategory.values) {
+      if (c.name.toLowerCase() == rawCat.toLowerCase() ||
+          c.labelBn == rawCat ||
+          rawCat.contains(c.labelBn)) {
+        cat = c;
+        break;
+      }
+    }
+
+    // Map unit
+    ProductUnit u = ProductUnit.kg;
+    final rawUnit = (json['unit'] ?? '').toString();
+    for (var unitEnum in ProductUnit.values) {
+      if (unitEnum.name.toLowerCase() == rawUnit.toLowerCase() ||
+          unitEnum.labelBn == rawUnit ||
+          rawUnit.contains(unitEnum.labelBn)) {
+        u = unitEnum;
+        break;
+      }
+    }
+
+    // Map OrderStatus
+    OrderStatus st = OrderStatus.pending;
+    final rawStatus = (json['order_status'] ?? 'pending').toString().toLowerCase();
+    for (var s in OrderStatus.values) {
+      if (s.name.toLowerCase() == rawStatus || s.labelBn == rawStatus) {
+        st = s;
+        break;
+      }
+    }
+
+    // Map TransportStatus
+    TransportStatus trStatus = TransportStatus.waiting;
+    final rawTr = (json['transport_status'] ?? 'waiting').toString().toLowerCase();
+    for (var t in TransportStatus.values) {
+      if (t.name.toLowerCase() == rawTr || t.labelBn == rawTr) {
+        trStatus = t;
+        break;
+      }
+    }
+
+    final double qty = (json['quantity'] is num)
+        ? (json['quantity'] as num).toDouble()
+        : (double.tryParse(json['quantity']?.toString() ?? '') ?? 0.0);
+
+    final double price = (json['price_per_unit'] is num)
+        ? (json['price_per_unit'] as num).toDouble()
+        : (double.tryParse(json['price_per_unit']?.toString() ?? '') ?? 0.0);
+
+    final double total = (json['total_amount'] is num)
+        ? (json['total_amount'] as num).toDouble()
+        : (double.tryParse(json['total_amount']?.toString() ?? '') ?? (qty * price));
+
+    final double deposit = (json['deposit_required'] is num)
+        ? (json['deposit_required'] as num).toDouble()
+        : (double.tryParse(json['deposit_required']?.toString() ?? '') ?? (total * 0.20));
+
+    final pickup = (json['pickup_location'] ?? '').toString();
+    final collection = (json['collection_center'] ?? '').toString();
+    final delivery = (json['delivery_location'] ?? '').toString();
+    final fLoc = (json['farmer_location'] ?? '').toString();
+
+    return MarketplaceOrder(
+      id: (json['id'] ?? '').toString(),
+      orderNumber: (json['order_number'] ?? '').toString(),
+      demandId: json['demand_id']?.toString(),
+      offerId: json['offer_id']?.toString(),
+      buyerId: (json['buyer_id'] ?? '').toString(),
+      buyerName: (json['buyer_name'] ?? '').toString(),
+      buyerBusinessName: (json['buyer_business_name'] ?? '').toString(),
+      buyerPhone: (json['buyer_phone'] ?? '').toString(),
+      farmerId: (json['farmer_id'] ?? '').toString(),
+      farmerName: (json['farmer_name'] ?? '').toString(),
+      farmerPhone: (json['farmer_phone'] ?? '').toString(),
+      farmerLocation: fLoc,
+      productTitle: (json['product_title'] ?? '').toString(),
+      category: cat,
+      quantity: qty,
+      unit: u,
+      pricePerUnit: price,
+      totalAmount: total,
+      depositRequired: deposit,
+      isDepositPaid: json['is_deposit_paid'] == true,
+      orderStatus: st,
+      deliveryLocation: delivery,
+      expectedDeliveryDate: (json['expected_delivery_date'] ?? '').toString(),
+      deliveryInfo: DeliveryInfo(
+        pickupLocation: pickup.isNotEmpty ? pickup : fLoc,
+        collectionCenter: collection.isNotEmpty ? collection : '$fLoc কালেকশন হাব',
+        deliveryLocation: delivery,
+        transportStatus: trStatus,
+        driverName: (json['driver_name'] ?? 'মোঃ রফিকুল ইসলাম').toString(),
+        driverPhone: (json['driver_phone'] ?? '01712-345678').toString(),
+        vehicleNumber: (json['vehicle_number'] ?? 'ঢাকা মেট্রো-ট ১১-৪৫২৩').toString(),
+      ),
+      verification: QualityVerification(
+        expectedWeight: qty,
+        actualWeight: qty,
+        unit: u,
+        qualityGrade: QualityGrade.gradeA,
+        isVerified: st != OrderStatus.pending,
+      ),
+      hasDispute: json['has_dispute'] == true,
+      isRated: json['is_rated'] == true,
+      createdAt: (json['created_at'] ?? 'এখনই').toString(),
+    );
+  }
 }
 
 class Dispute {
