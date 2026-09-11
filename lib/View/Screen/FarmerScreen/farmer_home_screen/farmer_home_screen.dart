@@ -616,6 +616,90 @@ class FarmerHomeScreen extends StatelessWidget {
     required MarketplaceOrder order,
     required VoidCallback onTap,
   }) {
+    final isPaid = order.isDepositPaid || order.paymentStatus == 'confirmed';
+    final isPaymentPending = order.paymentStatus == 'pending_verification' ||
+        order.orderStatus == OrderStatus.paymentPending;
+    final isQualityRejected = order.isQualityPassed == false ||
+        order.orderStatus == OrderStatus.qualityRejected;
+    final isRefunded = order.refundStatus == 'completed' ||
+        order.orderStatus == OrderStatus.refunded;
+
+    String statusBadgeText = 'ডিপোজিট বাকি ⏳';
+    Color statusBadgeBg = const Color(0xFFFFEDD5);
+    Color statusBadgeTextCol = const Color(0xFFEA580C);
+    IconData statusBadgeIcon = Icons.schedule;
+
+    String depositBadgeText = 'ডিপোজিট বাকি ⏳';
+    Color depositBadgeBg = const Color(0xFFFFEDD5);
+    Color depositBadgeTextCol = const Color(0xFFEA580C);
+
+    if (isRefunded) {
+      statusBadgeText = 'রিফান্ড সম্পন্ন 💰';
+      statusBadgeBg = const Color(0xFFE0F2FE);
+      statusBadgeTextCol = const Color(0xFF0284C7);
+      statusBadgeIcon = Icons.monetization_on;
+      depositBadgeText = 'রিফান্ডেড 💸';
+      depositBadgeBg = const Color(0xFFE0F2FE);
+      depositBadgeTextCol = const Color(0xFF0284C7);
+    } else if (isQualityRejected) {
+      statusBadgeText = 'পণ্য বাতিল ❌';
+      statusBadgeBg = const Color(0xFFFEE2E2);
+      statusBadgeTextCol = const Color(0xFFDC2626);
+      statusBadgeIcon = Icons.cancel;
+      depositBadgeText = 'বাতিলকৃত ❌';
+      depositBadgeBg = const Color(0xFFFEE2E2);
+      depositBadgeTextCol = const Color(0xFFDC2626);
+    } else if (order.orderStatus == OrderStatus.completed) {
+      statusBadgeText = 'অর্ডার সম্পন্ন 🎉';
+      statusBadgeBg = const Color(0xFFDCFCE7);
+      statusBadgeTextCol = const Color(0xFF166534);
+      statusBadgeIcon = Icons.check_circle;
+      depositBadgeText = 'পরিশোধিত ✅';
+      depositBadgeBg = const Color(0xFFDCFCE7);
+      depositBadgeTextCol = const Color(0xFF166534);
+    } else if (order.orderStatus == OrderStatus.delivered) {
+      statusBadgeText = 'ডেলিভারি সম্পন্ন 📦';
+      statusBadgeBg = const Color(0xFFDCFCE7);
+      statusBadgeTextCol = const Color(0xFF166534);
+      statusBadgeIcon = Icons.check_circle;
+      depositBadgeText = 'খালাস বাকি ⏳';
+      depositBadgeBg = const Color(0xFFDCFCE7);
+      depositBadgeTextCol = const Color(0xFF166534);
+    } else if (order.orderStatus == OrderStatus.inTransit) {
+      statusBadgeText = 'ইন ট্রানজিট 🚚';
+      statusBadgeBg = const Color(0xFFE0F2FE);
+      statusBadgeTextCol = const Color(0xFF0284C7);
+      statusBadgeIcon = Icons.local_shipping;
+      depositBadgeText = 'ডিপোজিট পেইড ✅';
+      depositBadgeBg = const Color(0xFFDCFCE7);
+      depositBadgeTextCol = const Color(0xFF166534);
+    } else if (order.orderStatus == OrderStatus.collectionVerified ||
+        (order.isQualityPassed == true && order.verification.isVerified)) {
+      statusBadgeText = 'হাব যাচাই সম্পন্ন ⚖️';
+      statusBadgeBg = const Color(0xFFE0E7FF);
+      statusBadgeTextCol = const Color(0xFF4338CA);
+      statusBadgeIcon = Icons.verified;
+      depositBadgeText = 'ডিপোজিট পেইড ✅';
+      depositBadgeBg = const Color(0xFFDCFCE7);
+      depositBadgeTextCol = const Color(0xFF166534);
+    } else if (order.orderStatus == OrderStatus.paymentConfirmed || isPaid) {
+      statusBadgeText = 'পেমেন্ট কনফার্মড 🔬';
+      statusBadgeBg = const Color(0xFFDCFCE7);
+      statusBadgeTextCol = const Color(0xFF166534);
+      statusBadgeIcon = Icons.check_circle;
+      depositBadgeText = 'ডিপোজিট পেইড ✅';
+      depositBadgeBg = const Color(0xFFDCFCE7);
+      depositBadgeTextCol = const Color(0xFF166534);
+    } else if (isPaymentPending) {
+      statusBadgeText = 'পেমেন্ট যাচাই পেন্ডিং ⏳';
+      statusBadgeBg = const Color(0xFFFEF3C7);
+      statusBadgeTextCol = const Color(0xFFB45309);
+      statusBadgeIcon = Icons.hourglass_top;
+      depositBadgeText = 'যাচাই পেন্ডিং ⏳';
+      depositBadgeBg = const Color(0xFFFEF3C7);
+      depositBadgeTextCol = const Color(0xFFB45309);
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -624,7 +708,9 @@ class FarmerHomeScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(
+            color: isQualityRejected ? const Color(0xFFFECDD3) : const Color(0xFFE2E8F0),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
@@ -639,30 +725,36 @@ class FarmerHomeScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '#${order.orderNumber} • ${order.createdAt}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF334155),
+                Flexible(
+                  child: Text(
+                    '#${order.orderNumber} • ${order.createdAt}',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF334155),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDCFCE7),
+                    color: statusBadgeBg,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
-                    children: const [
-                      Icon(Icons.check_circle, color: Color(0xFF166534), size: 14),
-                      SizedBox(width: 4),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(statusBadgeIcon, color: statusBadgeTextCol, size: 13),
+                      const SizedBox(width: 4),
                       Text(
-                        'লেনদেন সম্পন্ন (Completed 🎉)',
+                        statusBadgeText,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF166534),
+                          color: statusBadgeTextCol,
                         ),
                       ),
                     ],
@@ -714,20 +806,16 @@ class FarmerHomeScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDCFCE7),
+                    color: depositBadgeBg,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Row(
-                    children: const [
-                      Text(
-                        'ডিপোজিট পেইড ✅',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF166534),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    depositBadgeText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: depositBadgeTextCol,
+                    ),
                   ),
                 ),
               ],

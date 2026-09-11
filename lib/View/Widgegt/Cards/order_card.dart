@@ -29,7 +29,89 @@ class OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCompleted = order.orderStatus == OrderStatus.completed;
+    final isPaid = order.isDepositPaid || order.paymentStatus == 'confirmed';
+    final isPaymentPending = order.paymentStatus == 'pending_verification' ||
+        order.orderStatus == OrderStatus.paymentPending;
+    final isQualityRejected = order.isQualityPassed == false ||
+        order.orderStatus == OrderStatus.qualityRejected;
+    final isRefunded = order.refundStatus == 'completed' ||
+        order.orderStatus == OrderStatus.refunded;
+
+    String statusBadgeText = 'ডিপোজিট বাকি ⏳';
+    Color statusBadgeBg = const Color(0xFFFFEDD5);
+    Color statusBadgeTextCol = const Color(0xFFEA580C);
+    IconData statusBadgeIcon = Icons.schedule;
+
+    String depositBadgeText = 'ডিপোজিট বাকি ⏳';
+    Color depositBadgeBg = const Color(0xFFFFEDD5);
+    Color depositBadgeTextCol = const Color(0xFFEA580C);
+
+    if (isRefunded) {
+      statusBadgeText = 'রিফান্ড সম্পন্ন 💰';
+      statusBadgeBg = const Color(0xFFE0F2FE);
+      statusBadgeTextCol = const Color(0xFF0284C7);
+      statusBadgeIcon = Icons.monetization_on;
+      depositBadgeText = 'রিফান্ডেড 💸';
+      depositBadgeBg = const Color(0xFFE0F2FE);
+      depositBadgeTextCol = const Color(0xFF0284C7);
+    } else if (isQualityRejected) {
+      statusBadgeText = 'পণ্য বাতিল ❌';
+      statusBadgeBg = const Color(0xFFFEE2E2);
+      statusBadgeTextCol = const Color(0xFFDC2626);
+      statusBadgeIcon = Icons.cancel;
+      depositBadgeText = 'বাতিলকৃত ❌';
+      depositBadgeBg = const Color(0xFFFEE2E2);
+      depositBadgeTextCol = const Color(0xFFDC2626);
+    } else if (order.orderStatus == OrderStatus.completed) {
+      statusBadgeText = 'অর্ডার সম্পন্ন 🎉';
+      statusBadgeBg = const Color(0xFFDCFCE7);
+      statusBadgeTextCol = const Color(0xFF166534);
+      statusBadgeIcon = Icons.check_circle;
+      depositBadgeText = 'পরিশোধিত ✅';
+      depositBadgeBg = const Color(0xFFDCFCE7);
+      depositBadgeTextCol = const Color(0xFF166534);
+    } else if (order.orderStatus == OrderStatus.delivered) {
+      statusBadgeText = 'ডেলিভারি সম্পন্ন 📦';
+      statusBadgeBg = const Color(0xFFDCFCE7);
+      statusBadgeTextCol = const Color(0xFF166534);
+      statusBadgeIcon = Icons.check_circle;
+      depositBadgeText = 'খালাস বাকি ⏳';
+      depositBadgeBg = const Color(0xFFDCFCE7);
+      depositBadgeTextCol = const Color(0xFF166534);
+    } else if (order.orderStatus == OrderStatus.inTransit) {
+      statusBadgeText = 'ইন ট্রানজিট 🚚';
+      statusBadgeBg = const Color(0xFFE0F2FE);
+      statusBadgeTextCol = const Color(0xFF0284C7);
+      statusBadgeIcon = Icons.local_shipping;
+      depositBadgeText = 'ডিপোজিট পেইড ✅';
+      depositBadgeBg = const Color(0xFFDCFCE7);
+      depositBadgeTextCol = const Color(0xFF166534);
+    } else if (order.orderStatus == OrderStatus.collectionVerified ||
+        (order.isQualityPassed == true && order.verification.isVerified)) {
+      statusBadgeText = 'হাব যাচাই সম্পন্ন ⚖️';
+      statusBadgeBg = const Color(0xFFE0E7FF);
+      statusBadgeTextCol = const Color(0xFF4338CA);
+      statusBadgeIcon = Icons.verified;
+      depositBadgeText = 'ডিপোজিট পেইড ✅';
+      depositBadgeBg = const Color(0xFFDCFCE7);
+      depositBadgeTextCol = const Color(0xFF166534);
+    } else if (order.orderStatus == OrderStatus.paymentConfirmed || isPaid) {
+      statusBadgeText = 'পেমেন্ট কনফার্মড 🔬';
+      statusBadgeBg = const Color(0xFFDCFCE7);
+      statusBadgeTextCol = const Color(0xFF166534);
+      statusBadgeIcon = Icons.check_circle;
+      depositBadgeText = 'ডিপোজিট পেইড ✅';
+      depositBadgeBg = const Color(0xFFDCFCE7);
+      depositBadgeTextCol = const Color(0xFF166534);
+    } else if (isPaymentPending) {
+      statusBadgeText = 'পেমেন্ট যাচাই পেন্ডিং ⏳';
+      statusBadgeBg = const Color(0xFFFEF3C7);
+      statusBadgeTextCol = const Color(0xFFB45309);
+      statusBadgeIcon = Icons.hourglass_top;
+      depositBadgeText = 'যাচাই পেন্ডিং ⏳';
+      depositBadgeBg = const Color(0xFFFEF3C7);
+      depositBadgeTextCol = const Color(0xFFB45309);
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -87,26 +169,24 @@ class OrderCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: isCompleted ? const Color(0xFFDCFCE7) : const Color(0xFFFFF7ED),
+                      color: statusBadgeBg,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          isCompleted ? Icons.check_circle : Icons.schedule,
-                          color: isCompleted ? const Color(0xFF166534) : const Color(0xFFEA580C),
+                          statusBadgeIcon,
+                          color: statusBadgeTextCol,
                           size: 12,
                         ),
-                        const SizedBox(width: 3),
+                        const SizedBox(width: 4),
                         Text(
-                          isCompleted
-                              ? 'সম্পন্ন (Completed 🎉)'
-                              : 'ডিপোজিট বাকি (Payment Pending)',
+                          statusBadgeText,
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: isCompleted ? const Color(0xFF166534) : const Color(0xFFEA580C),
+                            color: statusBadgeTextCol,
                           ),
                         ),
                       ],
@@ -169,15 +249,15 @@ class OrderCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: order.isDepositPaid ? const Color(0xFFDCFCE7) : const Color(0xFFFFF7ED),
+                      color: depositBadgeBg,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      order.isDepositPaid ? 'ডিপোজিট পেইড ✅' : 'ডিপোজিট বাকি ⌛',
+                      depositBadgeText,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: order.isDepositPaid ? const Color(0xFF166534) : const Color(0xFFEA580C),
+                        color: depositBadgeTextCol,
                       ),
                     ),
                   ),
