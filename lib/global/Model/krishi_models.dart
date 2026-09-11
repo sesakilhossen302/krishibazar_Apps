@@ -876,10 +876,10 @@ class DeliveryInfo {
     required this.collectionCenter,
     required this.deliveryLocation,
     this.transportStatus = TransportStatus.waiting,
-    this.driverName = 'মোঃ রফিকুল ইসলাম',
-    this.driverPhone = '01712-345678',
-    this.vehicleNumber = 'ঢাকা মেট্রো-ট ১১-৪৫২৩',
-    this.estimatedArrival = 'আজ বিকাল ৪:০০',
+    this.driverName = '',
+    this.driverPhone = '',
+    this.vehicleNumber = '',
+    this.estimatedArrival = '',
   });
 }
 
@@ -898,10 +898,10 @@ class QualityVerification {
     required this.actualWeight,
     required this.unit,
     required this.qualityGrade,
-    this.verifiedBy = 'মোঃ আশরাফুল (কালেকশন হাব ইন্সপেক্টর)',
-    this.verificationDate = 'আজ দুপুর ১২:৩০',
-    this.notes = 'ওজন সম্পূর্ণ সঠিক, গ্রেড A মান নিশ্চিত করা হয়েছে',
-    this.isVerified = true,
+    this.verifiedBy = '',
+    this.verificationDate = '',
+    this.notes = '',
+    this.isVerified = false,
   });
 }
 
@@ -1085,8 +1085,8 @@ class MarketplaceOrder {
 
     final String vInspector = inspName.isNotEmpty
         ? (inspDesig.isNotEmpty ? '$inspName ($inspDesig)' : inspName)
-        : (json['verified_by'] ?? 'সেলিম রেজা (কালেকশন হাব ইন্সপেক্টর)').toString();
-    final String vNotes = (json['verification_notes'] ?? 'পণ্য ফ্রেশ ও মানসম্মত').toString();
+        : (json['verified_by'] ?? '').toString();
+    final String vNotes = (json['verification_notes'] ?? '').toString();
 
     return MarketplaceOrder(
       id: (json['id'] ?? '').toString(),
@@ -1116,12 +1116,13 @@ class MarketplaceOrder {
       expectedDeliveryDate: (json['expected_delivery_date'] ?? '').toString(),
       deliveryInfo: DeliveryInfo(
         pickupLocation: pickup.isNotEmpty ? pickup : fLoc,
-        collectionCenter: collection.isNotEmpty ? collection : '$fLoc কালেকশন হাব',
+        collectionCenter: collection.isNotEmpty ? collection : (fLoc.isNotEmpty ? '$fLoc কালেকশন হাব' : 'কৃষিবাজার কালেকশন হাব'),
         deliveryLocation: delivery,
         transportStatus: trStatus,
-        driverName: (json['driver_name'] ?? 'মোঃ রফিকুল ইসলাম').toString(),
-        driverPhone: (json['driver_phone'] ?? '01712-345678').toString(),
-        vehicleNumber: (json['vehicle_number'] ?? 'ঢাকা মেট্রো-ট ১১-৪৫২৩').toString(),
+        driverName: (json['driver_name'] ?? '').toString(),
+        driverPhone: (json['driver_phone'] ?? '').toString(),
+        vehicleNumber: (json['vehicle_number'] ?? '').toString(),
+        estimatedArrival: (json['expected_delivery_date'] ?? '').toString(),
       ),
       verification: QualityVerification(
         expectedWeight: qty,
@@ -1129,7 +1130,7 @@ class MarketplaceOrder {
         unit: u,
         qualityGrade: qGrade,
         verifiedBy: vInspector,
-        verificationDate: 'আজ দুপুর ১২:৩০',
+        verificationDate: (json['verification_date'] ?? json['updated_at'] ?? '').toString(),
         notes: vNotes,
         isVerified: isQualityVerified,
       ),

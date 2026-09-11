@@ -1341,24 +1341,36 @@ class OrderDetailDialog extends StatelessWidget {
           ],
           _buildRowText(
             'ড্রাইভারের নাম:',
-            '${currentOrder.deliveryInfo.driverName} (${currentOrder.deliveryInfo.driverPhone})',
+            currentOrder.deliveryInfo.driverName.isNotEmpty
+                ? '${currentOrder.deliveryInfo.driverName}${currentOrder.deliveryInfo.driverPhone.isNotEmpty ? " (${currentOrder.deliveryInfo.driverPhone})" : ""}'
+                : 'নিযুক্ত করা হয়নি (অপেক্ষমাণ)',
           ),
           const SizedBox(height: 6),
           _buildRowText(
             'গাড়ির নম্বর:',
-            currentOrder.deliveryInfo.vehicleNumber,
+            currentOrder.deliveryInfo.vehicleNumber.isNotEmpty
+                ? currentOrder.deliveryInfo.vehicleNumber
+                : 'নির্ধারিত হয়নি',
           ),
           const SizedBox(height: 6),
           _buildRowText(
             'সংগ্রহ পয়েন্ট:',
-            currentOrder.deliveryInfo.pickupLocation,
+            currentOrder.deliveryInfo.pickupLocation.isNotEmpty
+                ? currentOrder.deliveryInfo.pickupLocation
+                : (currentOrder.farmerLocation.isNotEmpty ? currentOrder.farmerLocation : 'কৃষকের ঠিকানা'),
           ),
           const SizedBox(height: 6),
           _buildRowText('গন্তব্য:', currentOrder.deliveryLocation),
           const SizedBox(height: 6),
           _buildRowText(
             'আনুমানিক সময়:',
-            isDelivered ? 'ডেলিভারি সফল হয়েছে' : 'আজ বিকাল ৫:০০ (চলমান)',
+            isDelivered
+                ? 'ডেলিভারি সফল হয়েছে'
+                : (currentOrder.expectedDeliveryDate.isNotEmpty
+                    ? currentOrder.expectedDeliveryDate
+                    : (currentOrder.deliveryInfo.estimatedArrival.isNotEmpty
+                        ? currentOrder.deliveryInfo.estimatedArrival
+                        : 'প্রক্রিয়াধীন')),
             color: isDelivered
                 ? const Color(0xFF166534)
                 : const Color(0xFF0284C7),
@@ -1528,15 +1540,13 @@ class OrderDetailDialog extends StatelessWidget {
             'যাচাইকারী এজেন্ট:',
             currentOrder.inspectorName.isNotEmpty
                 ? '${currentOrder.inspectorName} (${currentOrder.inspectorDesignation})'
-                : (isVerified ? v.verifiedBy : 'কৃষিবাজার কালেকশন হাব টিম'),
+                : (isVerified && v.verifiedBy.isNotEmpty ? v.verifiedBy : 'কৃষিবাজার কালেকশন হাব টিম'),
           ),
           if (isVerified) ...[
             const SizedBox(height: 6),
             _buildRowText(
               'মন্তব্য:',
-              v.notes.isNotEmpty
-                  ? '"${v.notes}"'
-                  : '"উন্নত ও তাজা মানের পণ্য।"',
+              v.notes.isNotEmpty ? '"${v.notes}"' : 'কোনো বিশেষ মন্তব্য নেই',
             ),
           ],
         ],
