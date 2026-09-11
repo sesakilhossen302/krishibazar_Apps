@@ -83,63 +83,73 @@ class OrderDetailDialog extends StatelessWidget {
 
               // 3. Payment & Escrow Box ("পেমেন্ট ও ডিপোজিট এসক্রো 💰")
               _buildPaymentEscrowBox(currentOrder, controller, isFarmer),
-              const SizedBox(height: 14),
 
-              // 4. Transport & Tracking Box ("পরিবহন ও ট্রাক ট্র্যাকিং 🚚")
-              _buildTransportBox(currentOrder, controller, isFarmer),
-              const SizedBox(height: 14),
+              // 4. Weight & Quality Verification Box ("ওজন ও গুণমান যাচাই ⚖️")
+              // দেখা যাবে শুধুমাত্র যখন ক্রেতা ২০% ডিপোজিট প্রদান করেছে
+              if (currentOrder.isDepositPaid) ...[
+                const SizedBox(height: 14),
+                _buildVerificationBox(currentOrder),
+              ],
 
-              // 5. Weight & Quality Verification Box ("ওজন ও গুণমান যাচাই ⚖️")
-              _buildVerificationBox(currentOrder),
-              const SizedBox(height: 20),
+              // 5. Transport & Tracking Box ("পরিবহন ও ট্র্যাকিং 🚚")
+              // দেখা যাবে শুধুমাত্র কালেকশন হাবে এডমিন কর্তৃক মান যাচাই সম্পন্ন হবার পর
+              if (currentOrder.isDepositPaid && currentOrder.verification.isVerified) ...[
+                const SizedBox(height: 14),
+                _buildTransportBox(currentOrder, controller, isFarmer),
+              ],
 
               // 6. Bottom Action Buttons (Dispute & Rating)
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: controller.openDispute,
-                      icon: const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 18),
-                      label: const Text(
-                        'সমস্যা রিপোর্ট',
-                        style: TextStyle(
-                          color: Colors.redAccent,
-                          fontWeight: FontWeight.bold,
+              // দেখা যাবে শুধুমাত্র পণ্য সফলভাবে ডেলিভারি বা সম্পন্ন হবার পর
+              if (currentOrder.orderStatus == OrderStatus.delivered ||
+                  currentOrder.orderStatus == OrderStatus.completed) ...[
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: controller.openDispute,
+                        icon: const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 18),
+                        label: const Text(
+                          'সমস্যা রিপোর্ট',
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: Colors.redAccent),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: controller.openRating,
-                      icon: const Icon(Icons.star, color: Colors.white, size: 18),
-                      label: const Text(
-                        'রেটিং দিন',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEA580C),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(color: Colors.redAccent),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: controller.openRating,
+                        icon: const Icon(Icons.star, color: Colors.white, size: 18),
+                        label: const Text(
+                          'রেটিং দিন',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEA580C),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 24),
             ],
           ),
@@ -153,6 +163,38 @@ class OrderDetailDialog extends StatelessWidget {
   Widget _buildStatusBox(MarketplaceOrder currentOrder) {
     final isPaid = currentOrder.isDepositPaid;
     final isCompleted = currentOrder.orderStatus == OrderStatus.completed;
+
+    String statusBadgeText = 'ডিপোজিট বাকি ⏳';
+    Color statusBadgeBg = const Color(0xFFFFEDD5);
+    Color statusBadgeTextCol = const Color(0xFFEA580C);
+    IconData statusBadgeIcon = Icons.schedule;
+
+    if (isCompleted) {
+      statusBadgeText = 'অর্ডার সম্পন্ন 🎉';
+      statusBadgeBg = const Color(0xFFDCFCE7);
+      statusBadgeTextCol = const Color(0xFF166534);
+      statusBadgeIcon = Icons.check_circle;
+    } else if (currentOrder.orderStatus == OrderStatus.delivered) {
+      statusBadgeText = 'ডেলিভারি সম্পন্ন 📦';
+      statusBadgeBg = const Color(0xFFDCFCE7);
+      statusBadgeTextCol = const Color(0xFF166534);
+      statusBadgeIcon = Icons.check_circle;
+    } else if (currentOrder.orderStatus == OrderStatus.inTransit) {
+      statusBadgeText = 'ইন ট্রানজিট 🚚';
+      statusBadgeBg = const Color(0xFFE0F2FE);
+      statusBadgeTextCol = const Color(0xFF0284C7);
+      statusBadgeIcon = Icons.local_shipping;
+    } else if (currentOrder.orderStatus == OrderStatus.collectionVerified || currentOrder.verification.isVerified) {
+      statusBadgeText = 'হাব যাচাই সম্পন্ন ⚖️';
+      statusBadgeBg = const Color(0xFFE0E7FF);
+      statusBadgeTextCol = const Color(0xFF4338CA);
+      statusBadgeIcon = Icons.verified;
+    } else if (isPaid) {
+      statusBadgeText = 'ডিপোজিট পেইড ✅';
+      statusBadgeBg = const Color(0xFFDCFCE7);
+      statusBadgeTextCol = const Color(0xFF166534);
+      statusBadgeIcon = Icons.check_circle;
+    }
 
     return Container(
       width: double.infinity,
@@ -183,28 +225,24 @@ class OrderDetailDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isCompleted
-                      ? const Color(0xFFDCFCE7)
-                      : (isPaid ? const Color(0xFFDCFCE7) : const Color(0xFFFFEDD5)),
+                  color: statusBadgeBg,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isCompleted ? Icons.check_circle : (isPaid ? Icons.check_circle : Icons.schedule),
-                      color: isCompleted ? const Color(0xFF166534) : (isPaid ? const Color(0xFF166534) : const Color(0xFFEA580C)),
+                      statusBadgeIcon,
+                      color: statusBadgeTextCol,
                       size: 14,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      isCompleted
-                          ? 'সম্পন্ন 🎉'
-                          : (isPaid ? 'ডিপোজিট পেইড ✅' : 'ডিপোজিট বাকি'),
+                      statusBadgeText,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: isCompleted ? const Color(0xFF166534) : (isPaid ? const Color(0xFF166534) : const Color(0xFFEA580C)),
+                        color: statusBadgeTextCol,
                       ),
                     ),
                   ],
@@ -649,10 +687,15 @@ class OrderDetailDialog extends StatelessWidget {
     );
   }
 
-  // --- Helper 4: Transport & Tracking Box ("পরিবহন ও ট্রাক ট্র্যাকিং 🚚") ---
+  // --- Helper 4: Transport & Tracking Box ("পরিবহন ও ট্র্যাকিং 🚚") ---
   Widget _buildTransportBox(
       MarketplaceOrder currentOrder, OrderDetailController controller, bool isFarmer) {
     final status = currentOrder.deliveryInfo.transportStatus;
+    final isDelivered = status == TransportStatus.delivered ||
+        currentOrder.orderStatus == OrderStatus.delivered ||
+        currentOrder.orderStatus == OrderStatus.completed;
+    final isInTransit = status == TransportStatus.inTransit ||
+        currentOrder.orderStatus == OrderStatus.inTransit;
 
     return Container(
       width: double.infinity,
@@ -683,64 +726,85 @@ class OrderDetailDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE0F2FE),
+                  color: isDelivered
+                      ? const Color(0xFFDCFCE7)
+                      : (isInTransit ? const Color(0xFFE0F2FE) : const Color(0xFFFEF3C7)),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(
-                  status == TransportStatus.delivered
-                      ? 'গন্তব্যে পৌঁছেছে'
-                      : (status == TransportStatus.inTransit ? 'ইন ট্রানজিট' : 'পিকআপের অপেক্ষায়'),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0284C7),
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isDelivered
+                          ? Icons.check_circle
+                          : (isInTransit ? Icons.local_shipping : Icons.schedule),
+                      size: 13,
+                      color: isDelivered
+                          ? const Color(0xFF166534)
+                          : (isInTransit ? const Color(0xFF0284C7) : const Color(0xFFB45309)),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isDelivered
+                          ? 'ডেলিভারি সম্পন্ন 🎉'
+                          : (isInTransit ? 'ইন ট্রানজিট (পথে আছে)' : 'পিকআপের অপেক্ষায় ⏳'),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isDelivered
+                            ? const Color(0xFF166534)
+                            : (isInTransit ? const Color(0xFF0284C7) : const Color(0xFFB45309)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          _buildRowText('ড্রাইভারের নাম:', 'মোঃ কাশেম ড্রাইভার (০১৭১১-২২৩৭৪৪)'),
+          _buildRowText(
+            'ড্রাইভারের নাম:',
+            '${currentOrder.deliveryInfo.driverName} (${currentOrder.deliveryInfo.driverPhone})',
+          ),
           const SizedBox(height: 6),
-          _buildRowText('গাড়ির নম্বর:', 'ঢাকা মেট্রো-ট ১১-৪৫২৩'),
+          _buildRowText('গাড়ির নম্বর:', currentOrder.deliveryInfo.vehicleNumber),
           const SizedBox(height: 6),
           _buildRowText('সংগ্রহ পয়েন্ট:', currentOrder.deliveryInfo.pickupLocation),
           const SizedBox(height: 6),
           _buildRowText('গন্তব্য:', currentOrder.deliveryLocation),
           const SizedBox(height: 6),
-          _buildRowText('আনুমানিক সময়:', status == TransportStatus.delivered ? 'পৌঁছেছে' : 'আজ বিকাল ৫:০০'),
+          _buildRowText(
+            'আনুমানিক সময়:',
+            isDelivered ? 'ডেলিভারি সফল হয়েছে' : 'আজ বিকাল ৫:০০ (চলমান)',
+            color: isDelivered ? const Color(0xFF166534) : const Color(0xFF0284C7),
+            isBold: isDelivered,
+          ),
           const SizedBox(height: 14),
 
-          // Controls to change transport status
-          const Text(
-            'পরিবহন স্ট্যাটাস পরিবর্তন করুন (টেস্টিং):',
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF64748B),
-              fontWeight: FontWeight.w500,
+          // Informational note that transport is centrally managed from admin
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              _buildTransportChip(
-                label: 'পিকআপ',
-                isSelected: status == TransportStatus.atCollectionCenter,
-                onTap: () => controller.setTransportStatus(TransportStatus.atCollectionCenter),
-              ),
-              const SizedBox(width: 8),
-              _buildTransportChip(
-                label: 'ট্রানজিট',
-                isSelected: status == TransportStatus.inTransit,
-                onTap: () => controller.setTransportStatus(TransportStatus.inTransit),
-              ),
-              const SizedBox(width: 8),
-              _buildTransportChip(
-                label: 'ডেলিভার্ড',
-                isSelected: status == TransportStatus.delivered,
-                onTap: () => controller.setTransportStatus(TransportStatus.delivered),
-              ),
-            ],
+            child: Row(
+              children: const [
+                Icon(Icons.info_outline, size: 15, color: Color(0xFF64748B)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'পরিবহন ট্র্যাকিং কৃষিবাজার কেন্দ্রীয় হাব ও এডমিন ড্যাশবোর্ড থেকে পরিচালিত হয়।',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -750,6 +814,11 @@ class OrderDetailDialog extends StatelessWidget {
   // --- Helper 5: Weight & Quality Verification Box ---
   Widget _buildVerificationBox(MarketplaceOrder currentOrder) {
     final v = currentOrder.verification;
+    final isVerified = v.isVerified ||
+        currentOrder.orderStatus == OrderStatus.collectionVerified ||
+        currentOrder.orderStatus == OrderStatus.inTransit ||
+        currentOrder.orderStatus == OrderStatus.delivered ||
+        currentOrder.orderStatus == OrderStatus.completed;
 
     return Container(
       width: double.infinity,
@@ -757,7 +826,9 @@ class OrderDetailDialog extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(
+          color: isVerified ? const Color(0xFFC7E0CB) : const Color(0xFFFED7AA),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -769,7 +840,7 @@ class OrderDetailDialog extends StatelessWidget {
                 child: Text(
                   'ওজন ও গুণমান যাচাই ⚖️',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF0F172A),
                   ),
@@ -780,30 +851,79 @@ class OrderDetailDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
+                  color: isVerified ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text(
-                  'যাচাই সম্পন্ন ✅',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF166534),
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isVerified ? Icons.check_circle : Icons.hourglass_top,
+                      size: 13,
+                      color: isVerified ? const Color(0xFF166534) : const Color(0xFFB45309),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isVerified ? 'যাচাই সম্পন্ন ✅' : 'যাচাই প্রক্রিয়াধীন 🔄',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isVerified ? const Color(0xFF166534) : const Color(0xFFB45309),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 14),
+
+          if (!isVerified) ...[
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Row(
+                children: const [
+                  Text('🔬 ', style: TextStyle(fontSize: 14)),
+                  Expanded(
+                    child: Text(
+                      'কালেকশন হাবে পণ্যের গুণগত মান ও ওজন পরীক্ষা করা হচ্ছে। এডমিন ড্যাশবোর্ড থেকে টেস্ট কনফার্ম হলে পণ্য পরিবহনে উঠবে।',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF92400E)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
           _buildRowText('চুক্তিকৃত পরিমাণ:', '${currentOrder.quantity.toStringAsFixed(0)} ${currentOrder.unit.labelBn}'),
           const SizedBox(height: 6),
-          _buildRowText('প্রকৃত মাপা ওজন:', '${(currentOrder.quantity - 5).toStringAsFixed(0)} ${currentOrder.unit.labelBn}', color: const Color(0xFF166534), isBold: true),
+          _buildRowText(
+            'প্রকৃত মাপা ওজন:',
+            isVerified ? '${v.actualWeight.toStringAsFixed(0)} ${currentOrder.unit.labelBn}' : 'যাচাই প্রক্রিয়াধীন...',
+            color: isVerified ? const Color(0xFF166534) : const Color(0xFFB45309),
+            isBold: true,
+          ),
           const SizedBox(height: 6),
-          _buildRowText('যাচাইকৃত গ্রেড:', v.qualityGrade.labelBn, isBold: true),
+          _buildRowText(
+            'যাচাইকৃত গ্রেড:',
+            isVerified ? v.qualityGrade.labelBn : 'পরীক্ষা চলমান...',
+            isBold: true,
+          ),
           const SizedBox(height: 6),
-          _buildRowText('যাচাইকারী এজেন্ট:', 'সেলিম রেজা (ইনস্পেক্টর) (০১ সেপ্টেম্বর সকাল ৯টা)'),
-          const SizedBox(height: 6),
-          _buildRowText('মন্তব্য:', '"পণ্য ফ্রেশ ও পাকা ছিল"'),
+          _buildRowText(
+            'যাচাইকারী এজেন্ট:',
+            isVerified ? v.verifiedBy : 'কৃষিবাজার কালেকশন হাব টিম',
+          ),
+          if (isVerified) ...[
+            const SizedBox(height: 6),
+            _buildRowText('মন্তব্য:', '"${v.notes}"'),
+          ],
         ],
       ),
     );
@@ -836,35 +956,6 @@ class OrderDetailDialog extends StatelessWidget {
       ],
     );
   }
-
-  Widget _buildTransportChip({
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF166534) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF166534)),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : const Color(0xFF166534),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
+
 

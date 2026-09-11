@@ -1028,6 +1028,29 @@ class MarketplaceOrder {
     final collection = (json['collection_center'] ?? '').toString();
     final delivery = (json['delivery_location'] ?? '').toString();
     final fLoc = (json['farmer_location'] ?? '').toString();
+    final bool isQualityVerified = json['is_quality_verified'] == true ||
+        st == OrderStatus.collectionVerified ||
+        st == OrderStatus.inTransit ||
+        st == OrderStatus.delivered ||
+        st == OrderStatus.completed;
+
+    final double actWeight = (json['actual_weight'] is num)
+        ? (json['actual_weight'] as num).toDouble()
+        : (double.tryParse(json['actual_weight']?.toString() ?? '') ?? qty);
+
+    final String rawGrade = (json['quality_grade'] ?? '').toString();
+    QualityGrade qGrade = QualityGrade.gradeA;
+    for (var g in QualityGrade.values) {
+      if (g.name.toLowerCase() == rawGrade.toLowerCase() ||
+          g.labelBn == rawGrade ||
+          rawGrade.contains(g.labelBn)) {
+        qGrade = g;
+        break;
+      }
+    }
+
+    final String vInspector = (json['verified_by'] ?? 'সেলিম রেজা (কালেকশন হাব ইন্সপেক্টর)').toString();
+    final String vNotes = (json['verification_notes'] ?? 'পণ্য ফ্রেশ ও মানসম্মত').toString();
 
     return MarketplaceOrder(
       id: (json['id'] ?? '').toString(),
@@ -1064,10 +1087,13 @@ class MarketplaceOrder {
       ),
       verification: QualityVerification(
         expectedWeight: qty,
-        actualWeight: qty,
+        actualWeight: actWeight,
         unit: u,
-        qualityGrade: QualityGrade.gradeA,
-        isVerified: st != OrderStatus.pending,
+        qualityGrade: qGrade,
+        verifiedBy: vInspector,
+        verificationDate: 'আজ দুপুর ১২:৩০',
+        notes: vNotes,
+        isVerified: isQualityVerified,
       ),
       hasDispute: json['has_dispute'] == true,
       isRated: json['is_rated'] == true,
