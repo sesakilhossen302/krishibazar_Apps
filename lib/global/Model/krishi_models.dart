@@ -85,12 +85,15 @@ enum OfferStatus {
 
 enum OrderStatus {
   pending('অপেক্ষমাণ'),
-  paymentConfirmed('ডিপোজিট প্রদান সম্পন্ন'),
-  collectionVerified('হাব ওজন ও গুণমান যাচাই সম্পন্ন'),
-  inTransit('পরিবহনরত (In Transit)'),
-  delivered('পৌঁছেছে (Delivered)'),
-  completed('সম্পূর্ণ সম্পন্ন'),
-  disputed('অভিযোগ প্রক্রিয়াধীন'),
+  paymentPending('পেমেন্ট যাচাই প্রক্রিয়াধীন ⏳'),
+  paymentConfirmed('ডিপোজিট প্রদান সম্পন্ন ✅'),
+  collectionVerified('হাব ওজন ও গুণমান যাচাই সম্পন্ন ⚖️'),
+  qualityRejected('পণ্য মান পরীক্ষায় বাতিল ❌'),
+  inTransit('পরিবহনরত (In Transit) 🚚'),
+  delivered('পৌঁছেছে (Delivered) 📦'),
+  completed('সম্পূর্ণ সম্পন্ন 🎉'),
+  refunded('টাকা রিফান্ড সম্পন্ন 💰'),
+  disputed('অভিযোগ প্রক্রিয়াধীন ⚠️'),
   cancelled('বাতিল');
 
   final String labelBn;
@@ -923,11 +926,21 @@ class MarketplaceOrder {
   final double totalAmount;
   final double depositRequired;
   final bool isDepositPaid;
+  final String paymentStatus; // unpaid, pending_verification, confirmed, refund_pending, refunded
+  final String paymentVerificationNotes;
   final OrderStatus orderStatus;
   final String deliveryLocation;
   final String expectedDeliveryDate;
   final DeliveryInfo deliveryInfo;
   final QualityVerification verification;
+  final String inspectorName;
+  final String inspectorDesignation;
+  final bool? isQualityPassed;
+  final String rejectionReason;
+  final String refundStatus; // none, pending, completed
+  final double refundAmount;
+  final String refundNotes;
+  final String transportAgency;
   final bool hasDispute;
   final bool isRated;
   final String createdAt;
@@ -953,11 +966,21 @@ class MarketplaceOrder {
     required this.totalAmount,
     required this.depositRequired,
     this.isDepositPaid = false,
+    this.paymentStatus = 'unpaid',
+    this.paymentVerificationNotes = '',
     this.orderStatus = OrderStatus.pending,
     required this.deliveryLocation,
     required this.expectedDeliveryDate,
     required this.deliveryInfo,
     required this.verification,
+    this.inspectorName = '',
+    this.inspectorDesignation = '',
+    this.isQualityPassed,
+    this.rejectionReason = '',
+    this.refundStatus = 'none',
+    this.refundAmount = 0.0,
+    this.refundNotes = '',
+    this.transportAgency = '',
     this.hasDispute = false,
     this.isRated = false,
     required this.createdAt,
@@ -1049,7 +1072,20 @@ class MarketplaceOrder {
       }
     }
 
-    final String vInspector = (json['verified_by'] ?? 'সেলিম রেজা (কালেকশন হাব ইন্সপেক্টর)').toString();
+    final String pStatus = (json['payment_status'] ?? (json['is_deposit_paid'] == true ? 'confirmed' : 'unpaid')).toString();
+    final String pNotes = (json['payment_verification_notes'] ?? '').toString();
+    final String inspName = (json['inspector_name'] ?? '').toString();
+    final String inspDesig = (json['inspector_designation'] ?? '').toString();
+    final bool? qPassed = json['is_quality_passed'] is bool ? json['is_quality_passed'] as bool : null;
+    final String rejReason = (json['rejection_reason'] ?? '').toString();
+    final String refStatus = (json['refund_status'] ?? 'none').toString();
+    final double refAmount = (json['refund_amount'] is num) ? (json['refund_amount'] as num).toDouble() : 0.0;
+    final String refNotes = (json['refund_notes'] ?? '').toString();
+    final String trAgency = (json['transport_agency'] ?? '').toString();
+
+    final String vInspector = inspName.isNotEmpty
+        ? (inspDesig.isNotEmpty ? '$inspName ($inspDesig)' : inspName)
+        : (json['verified_by'] ?? 'সেলিম রেজা (কালেকশন হাব ইন্সপেক্টর)').toString();
     final String vNotes = (json['verification_notes'] ?? 'পণ্য ফ্রেশ ও মানসম্মত').toString();
 
     return MarketplaceOrder(
@@ -1073,6 +1109,8 @@ class MarketplaceOrder {
       totalAmount: total,
       depositRequired: deposit,
       isDepositPaid: json['is_deposit_paid'] == true,
+      paymentStatus: pStatus,
+      paymentVerificationNotes: pNotes,
       orderStatus: st,
       deliveryLocation: delivery,
       expectedDeliveryDate: (json['expected_delivery_date'] ?? '').toString(),
@@ -1095,6 +1133,14 @@ class MarketplaceOrder {
         notes: vNotes,
         isVerified: isQualityVerified,
       ),
+      inspectorName: inspName,
+      inspectorDesignation: inspDesig,
+      isQualityPassed: qPassed,
+      rejectionReason: rejReason,
+      refundStatus: refStatus,
+      refundAmount: refAmount,
+      refundNotes: refNotes,
+      transportAgency: trAgency,
       hasDispute: json['has_dispute'] == true,
       isRated: json['is_rated'] == true,
       createdAt: (json['created_at'] ?? 'এখনই').toString(),
