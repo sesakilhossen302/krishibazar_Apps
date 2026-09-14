@@ -51,6 +51,8 @@ class ApiUrl {
   static String get myOffers => "$baseUrl/demands/offers/my-offers";
   static String demandOffers(String demandId) => "$baseUrl/demands/$demandId/offers";
   static String get orders => "$baseUrl/orders/";
+  static String payOrderDeposit(String orderId) => "$baseUrl/orders/$orderId/pay-deposit";
+  static String get paymentSettings => "$baseUrl/settings/payment-methods";
   static String get notifications => "$baseUrl/notifications/";
   static String get unreadNotificationsCount => "$baseUrl/notifications/unread-count";
   static String get markAllNotificationsRead => "$baseUrl/notifications/mark-all-read";

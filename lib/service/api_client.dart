@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import '../global/Model/krishi_models.dart';
 import 'api_url.dart';
 
 class ApiClient {
@@ -1259,6 +1260,79 @@ class ApiClient {
         "success": false,
         "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
         "data": [],
+      };
+    }
+  }
+
+  /// Fetch payment methods configured by admin
+  static Future<List<PaymentSettingModel>> fetchPaymentMethods() async {
+    final uri = Uri.parse(ApiUrl.paymentSettings);
+    debugPrint('🚀 [API REQ] GET Payment Settings: $uri');
+    try {
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final List list = jsonDecode(utf8.decode(response.bodyBytes));
+        return list.map((m) => PaymentSettingModel.fromJson(m as Map<String, dynamic>)).toList();
+      }
+    } catch (e) {
+      debugPrint('⚠️ [API ERROR - FETCH PAYMENT METHODS]: $e');
+    }
+    return [];
+  }
+
+  /// Submit buyer deposit payment proof
+  static Future<Map<String, dynamic>> submitDepositPayment({
+    required String orderId,
+    required String paymentMethod,
+    required String senderPhone,
+    required String transactionId,
+    String screenshotUrl = '',
+    String notes = '',
+  }) async {
+    final uri = Uri.parse(ApiUrl.payOrderDeposit(orderId));
+    final body = {
+      'payment_method': paymentMethod,
+      'sender_phone': senderPhone,
+      'transaction_id': transactionId,
+      'screenshot_url': screenshotUrl,
+      'notes': notes,
+    };
+
+    debugPrint('🚀 [API REQ] POST Pay Deposit: $uri');
+    debugPrint('📦 [BODY]: ${jsonEncode(body)}');
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      ).timeout(const Duration(seconds: 12));
+
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+      debugPrint('📄 [API RES BODY]: ${response.body}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': data is Map && data['message'] != null ? data['message'] : 'ডিপোজিট পেমেন্টের তথ্য সফলভাবে জমা দেওয়া হয়েছে!',
+          'data': data,
+        };
+      } else {
+        return {
+          'success': false,
+          'message': _extractErrorMessage(data, 'ডিপোজিট পেমেন্ট জমা দিতে সমস্যা হয়েছে।'),
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - SUBMIT DEPOSIT]: $e');
+      return {
+        'success': false,
+        'message': 'সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e',
       };
     }
   }

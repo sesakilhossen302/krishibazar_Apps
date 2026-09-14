@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../Model/krishi_models.dart';
 import '../../Utils/StaticString/static_string.dart';
@@ -1038,6 +1039,48 @@ class KrishiRepository extends ChangeNotifier {
       snackbarMessage = StaticString.depositPaidSuccess;
       notifyListeners();
     }
+  }
+
+  Future<Map<String, dynamic>> submitDepositPaymentProof({
+    required String orderId,
+    required String paymentMethod,
+    required String senderPhone,
+    required String transactionId,
+    File? screenshotFile,
+    String notes = '',
+  }) async {
+    String screenshotUrl = '';
+    if (screenshotFile != null) {
+      final uploadRes = await ApiClient.uploadImageFile(screenshotFile);
+      if (uploadRes['success'] == true) {
+        screenshotUrl = uploadRes['url'] ?? '';
+      } else {
+        return {
+          'success': false,
+          'message': uploadRes['message'] ?? 'স্ক্রিনশট আপলোড করতে সমস্যা হয়েছে।',
+        };
+      }
+    }
+
+    final res = await ApiClient.submitDepositPayment(
+      orderId: orderId,
+      paymentMethod: paymentMethod,
+      senderPhone: senderPhone,
+      transactionId: transactionId,
+      screenshotUrl: screenshotUrl,
+      notes: notes,
+    );
+
+    if (res['success'] == true) {
+      await fetchOrdersFromBackend();
+      final updatedIdx = _orders.indexWhere((o) => o.id == orderId);
+      if (updatedIdx != -1) {
+        activeOrderForDetail = _orders[updatedIdx];
+      }
+      snackbarMessage = 'ডিপোজিট পেমেন্টের তথ্য সফলভাবে জমা দেওয়া হয়েছে!';
+      notifyListeners();
+    }
+    return res;
   }
 
   void advanceTransport(String orderId, TransportStatus nextStatus) {

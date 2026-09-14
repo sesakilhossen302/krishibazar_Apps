@@ -955,6 +955,13 @@ class MarketplaceOrder {
   final String farmerPayoutNotes;
   final String farmerPayoutDate;
 
+  // Deposit Proof & Admin Feedback
+  final String depositPaymentMethod;
+  final String depositSenderPhone;
+  final String depositTransactionId;
+  final String depositProofUrl;
+  final String depositAdminFeedback;
+
   MarketplaceOrder({
     required this.id,
     required this.orderNumber,
@@ -1002,6 +1009,11 @@ class MarketplaceOrder {
     this.farmerPayoutStatus = 'unpaid',
     this.farmerPayoutNotes = '',
     this.farmerPayoutDate = '',
+    this.depositPaymentMethod = '',
+    this.depositSenderPhone = '',
+    this.depositTransactionId = '',
+    this.depositProofUrl = '',
+    this.depositAdminFeedback = '',
   });
 
   factory MarketplaceOrder.fromBackendMap(Map<String, dynamic> json) {
@@ -1191,7 +1203,69 @@ class MarketplaceOrder {
       farmerPayoutStatus: fPayoutStatus,
       farmerPayoutNotes: fPayoutNotes,
       farmerPayoutDate: fPayoutDate,
+      depositPaymentMethod: (json['deposit_payment_method'] ?? '').toString(),
+      depositSenderPhone: (json['deposit_sender_phone'] ?? '').toString(),
+      depositTransactionId: (json['deposit_transaction_id'] ?? '').toString(),
+      depositProofUrl: (json['deposit_proof_url'] ?? '').toString(),
+      depositAdminFeedback: (json['deposit_admin_feedback'] ?? '').toString(),
     );
+  }
+}
+
+class PaymentSettingModel {
+  final String id;
+  final String name; // bkash, nagad, rocket
+  final String accountNumber;
+  final String accountType; // Personal, Merchant, Agent
+  final bool isActive;
+  final String instructions;
+  final String updatedAt;
+
+  PaymentSettingModel({
+    required this.id,
+    required this.name,
+    required this.accountNumber,
+    required this.accountType,
+    this.isActive = true,
+    this.instructions = '',
+    this.updatedAt = '',
+  });
+
+  factory PaymentSettingModel.fromJson(Map<String, dynamic> json) {
+    return PaymentSettingModel(
+      id: (json['id'] ?? '').toString(),
+      name: (json['name'] ?? '').toString(),
+      accountNumber: (json['account_number'] ?? '').toString(),
+      accountType: (json['account_type'] ?? 'Personal').toString(),
+      isActive: json['is_active'] == true,
+      instructions: (json['instructions'] ?? '').toString(),
+      updatedAt: (json['updated_at'] ?? '').toString(),
+    );
+  }
+
+  String get displayNameBn {
+    switch (name.toLowerCase()) {
+      case 'bkash':
+        return 'বিকাশ (bKash)';
+      case 'nagad':
+        return 'নগদ (Nagad)';
+      case 'rocket':
+        return 'রকেট (Rocket)';
+      default:
+        return name;
+    }
+  }
+
+  String get accountTypeBn {
+    switch (accountType.toLowerCase()) {
+      case 'merchant':
+        return 'মার্চেন্ট অ্যাকাউন্ট';
+      case 'agent':
+        return 'এজেন্ট অ্যাকাউন্ট';
+      case 'personal':
+      default:
+        return 'ব্যক্তিগত (পার্সোনাল)';
+    }
   }
 }
 

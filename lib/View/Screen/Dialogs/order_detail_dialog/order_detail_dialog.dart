@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../global/Model/krishi_models.dart';
 import '../../../../global/controller/krishi_repository.dart';
+import '../../PaymentScreen/deposit_payment_screen.dart';
 import 'order_detail_controller.dart';
 
 class OrderDetailDialog extends StatelessWidget {
@@ -90,7 +91,7 @@ class OrderDetailDialog extends StatelessWidget {
                 const SizedBox(height: 14),
 
                 // 3. Payment & Escrow Box ("পেমেন্ট ও ডিপোজিট এসক্রো 💰")
-                _buildPaymentEscrowBox(currentOrder, controller, isFarmer),
+                _buildPaymentEscrowBox(currentOrder, controller, isFarmer, context),
 
                 // 4. Quality Inspection Failure & Refund Box ("পণ্য মান বাতিল ও রিফান্ড")
                 // দেখা যাবে যদি পণ্য টেস্টে বাতিল হয়
@@ -751,6 +752,7 @@ class OrderDetailDialog extends StatelessWidget {
     MarketplaceOrder currentOrder,
     OrderDetailController controller,
     bool isFarmer,
+    BuildContext context,
   ) {
     final isPaid =
         currentOrder.isDepositPaid || currentOrder.paymentStatus == 'confirmed';
@@ -763,12 +765,19 @@ class OrderDetailDialog extends StatelessWidget {
     final isRefunded =
         currentOrder.refundStatus == 'completed' ||
         currentOrder.orderStatus == OrderStatus.refunded;
+    final hasDiscrepancy =
+        currentOrder.paymentStatus == 'deposit_discrepancy' ||
+        currentOrder.depositAdminFeedback.isNotEmpty;
 
     String badgeText = 'ডিপোজিট বাকি ⏳';
     Color badgeBg = const Color(0xFFFFF7ED);
     Color badgeColor = const Color(0xFFEA580C);
 
-    if (isRefunded) {
+    if (hasDiscrepancy && !isPaid) {
+      badgeText = 'পেমেন্টে অসংগতি ⚠️';
+      badgeBg = const Color(0xFFFEF2F2);
+      badgeColor = const Color(0xFFDC2626);
+    } else if (isRefunded) {
       badgeText = 'রিফান্ড সম্পন্ন 💸';
       badgeBg = const Color(0xFFE0F2FE);
       badgeColor = const Color(0xFF0284C7);
@@ -984,16 +993,97 @@ class OrderDetailDialog extends StatelessWidget {
             const SizedBox(height: 10),
           ],
 
-          // Pay Deposit Button for Buyer when unpaid
+          // Admin Discrepancy Alert Card for Buyer
+          if (hasDiscrepancy && !isFarmer && !isPaid) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFCA5A5)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 18,
+                        color: Color(0xFFDC2626),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'পেমেন্ট তথ্যে অসংগতি / ভুল পাওয়া গেছে ⚠️',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF991B1B),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'এডমিন বার্তা: ${currentOrder.depositAdminFeedback.isNotEmpty ? currentOrder.depositAdminFeedback : "টাকা প্রাপ্তি মেলেনি বা তথ্য অসম্পূর্ণ।"}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF7F1D1D),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DepositPaymentScreen(order: currentOrder),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.refresh, color: Colors.white, size: 18),
+                      label: const Text(
+                        'সংশোধন করে পুনরায় জমা দিন',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+
+          // Pay Deposit Button for Buyer when unpaid and no discrepancy
           if (!isPaid &&
               !isPaymentPending &&
               !isFarmer &&
               !isRefundPending &&
-              !isRefunded) ...[
+              !isRefunded &&
+              !hasDiscrepancy) ...[
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: controller.payDeposit,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DepositPaymentScreen(order: currentOrder),
+                    ),
+                  );
+                },
                 icon: const Icon(Icons.payment, color: Colors.white),
                 label: Text(
                   'এখনই ডিপোজিট পে করুন (৳${currentOrder.depositRequired.toStringAsFixed(0)})',
@@ -1058,6 +1148,35 @@ class OrderDetailDialog extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
+                  if (currentOrder.depositTransactionId.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFFDE68A)),
+                      ),
+                      child: Row(
+                        children: [
+                          if (currentOrder.depositPaymentMethod.isNotEmpty)
+                            Text(
+                              '${currentOrder.depositPaymentMethod.toUpperCase()} • ',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                            ),
+                          Text(
+                            'TrxID: ${currentOrder.depositTransactionId}',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                          ),
+                          if (currentOrder.depositSenderPhone.isNotEmpty)
+                            Text(
+                              ' (${currentOrder.depositSenderPhone})',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
