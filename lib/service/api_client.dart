@@ -1204,6 +1204,220 @@ class ApiClient {
     }
   }
 
+  // ================= PRODUCT OFFERS (পণ্যের ক্রয় প্রস্তাব) =================
+
+  /// Create / submit a buyer purchase proposal for a product
+  static Future<Map<String, dynamic>> createProductOffer(
+    String productId,
+    Map<String, dynamic> body, {
+    String? token,
+    String? buyerId,
+  }) async {
+    Uri uri = Uri.parse(ApiUrl.productOffers(productId));
+    if (buyerId != null && buyerId.isNotEmpty) {
+      uri = uri.replace(queryParameters: {'buyer_id': buyerId});
+    }
+
+    final headers = <String, String>{
+      "Content-Type": "application/json",
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    debugPrint('🚀 [API REQ] POST Create Product Offer: $uri');
+    debugPrint('📦 [BODY]: ${jsonEncode(body)}');
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: headers,
+        body: jsonEncode(body),
+      );
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+      debugPrint('📄 [API RES BODY]: ${response.body}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          "success": true,
+          "message": "ক্রয় প্রস্তাবটি সফলভাবে পাঠানো হয়েছে!",
+          "data": data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "ক্রয় প্রস্তাব পাঠাতে সমস্যা হয়েছে।"),
+          "data": data,
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - CREATE PRODUCT OFFER]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+      };
+    }
+  }
+
+  /// Fetch all buyer purchase proposals for a specific product
+  static Future<Map<String, dynamic>> fetchOffersForProduct(String productId) async {
+    final uri = Uri.parse(ApiUrl.productOffers(productId));
+    debugPrint('🚀 [API REQ] GET Offers For Product: $uri');
+
+    try {
+      final response = await http.get(uri);
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 && data is List) {
+        return {
+          "success": true,
+          "data": data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "প্রস্তাবের তালিকা লোড করা যায়নি।"),
+          "data": [],
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - FETCH PRODUCT OFFERS]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+        "data": [],
+      };
+    }
+  }
+
+  /// Accept a buyer's purchase proposal for a product
+  static Future<Map<String, dynamic>> acceptProductOffer(String offerId) async {
+    final uri = Uri.parse(ApiUrl.acceptProductOffer(offerId));
+    debugPrint('🚀 [API REQ] POST Accept Product Offer: $uri');
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({}),
+      );
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          "success": true,
+          "message": "প্রস্তাবটি সফলভাবে গ্রহণ করা হয়েছে!",
+          "data": data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "প্রস্তাব গ্রহণ করতে সমস্যা হয়েছে।"),
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - ACCEPT PRODUCT OFFER]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+      };
+    }
+  }
+
+  /// Reject a buyer's purchase proposal for a product
+  static Future<Map<String, dynamic>> rejectProductOffer(String offerId) async {
+    final uri = Uri.parse(ApiUrl.rejectProductOffer(offerId));
+    debugPrint('🚀 [API REQ] POST Reject Product Offer: $uri');
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({}),
+      );
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+
+      dynamic data;
+      try {
+        data = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {}
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          "success": true,
+          "message": "প্রস্তাবটি প্রত্যাখ্যান করা হয়েছে।",
+          "data": data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": _extractErrorMessage(data, "প্রস্তাব প্রত্যাখ্যান করতে সমস্যা হয়েছে।"),
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - REJECT PRODUCT OFFER]: $e');
+      return {
+        "success": false,
+        "message": "সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি: $e",
+      };
+    }
+  }
+
+  /// Fetch current buyer's offer for a specific product
+  static Future<Map<String, dynamic>> fetchMyOfferForProduct(
+    String productId, {
+    String? token,
+    String? buyerId,
+  }) async {
+    Uri uri = Uri.parse(ApiUrl.myProductOffer(productId));
+    if (buyerId != null && buyerId.isNotEmpty) {
+      uri = uri.replace(queryParameters: {'buyer_id': buyerId});
+    }
+
+    final headers = <String, String>{};
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    debugPrint('🚀 [API REQ] GET My Offer For Product: $uri');
+
+    try {
+      final response = await http.get(uri, headers: headers);
+      debugPrint('📥 [API RES STATUS]: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        if (response.body.isEmpty || response.body.trim() == "null") {
+          return {"success": true, "data": null};
+        }
+        dynamic data;
+        try {
+          data = jsonDecode(utf8.decode(response.bodyBytes));
+        } catch (_) {}
+        return {"success": true, "data": data};
+      } else {
+        return {"success": false, "data": null};
+      }
+    } catch (e) {
+      debugPrint('❌ [API ERROR - FETCH MY PRODUCT OFFER]: $e');
+      return {"success": false, "data": null};
+    }
+  }
+
   /// Fetch orders from backend
   static Future<Map<String, dynamic>> fetchOrders({
     String? token,

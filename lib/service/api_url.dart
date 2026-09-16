@@ -50,6 +50,11 @@ class ApiUrl {
   static String get offers => "$baseUrl/demands/offers";
   static String get myOffers => "$baseUrl/demands/offers/my-offers";
   static String demandOffers(String demandId) => "$baseUrl/demands/$demandId/offers";
+  static String productOffers(String productId) => "$baseUrl/products/$productId/offers";
+  static String myProductOffer(String productId) => "$baseUrl/products/$productId/my-offer";
+  static String acceptProductOffer(String offerId) => "$baseUrl/products/offers/$offerId/accept";
+  static String rejectProductOffer(String offerId) => "$baseUrl/products/offers/$offerId/reject";
+  static String get myProductProposals => "$baseUrl/products/offers/my-proposals";
   static String get orders => "$baseUrl/orders/";
   static String payOrderDeposit(String orderId) => "$baseUrl/orders/$orderId/pay-deposit";
   static String get paymentSettings => "$baseUrl/settings/payment-methods";

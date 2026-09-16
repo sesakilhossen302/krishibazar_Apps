@@ -7,6 +7,7 @@ import '../../../global/Model/krishi_models.dart';
 import '../../../global/controller/krishi_repository.dart';
 import '../../../service/api_url.dart';
 import '../../Widgegt/app_media_image.dart';
+import '../ProductOffersScreen/product_offers_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final ProductListing product;
@@ -32,10 +33,34 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isPlaying = false;
   bool _isMuted = false;
 
+  ProductOffer? _myOffer;
+  bool _isLoadingMyOffer = false;
+
   @override
   void initState() {
     super.initState();
     _initVideoPlayer();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchMyOffer();
+    });
+  }
+
+  Future<void> _fetchMyOffer() async {
+    final repo = context.read<KrishiRepository>();
+    if (repo.currentRole == UserRole.buyer) {
+      final cached = repo.getCachedOfferForProduct(widget.product.id);
+      if (cached != null && mounted) {
+        setState(() => _myOffer = cached);
+      }
+      setState(() => _isLoadingMyOffer = true);
+      final offer = await repo.fetchMyOfferForProduct(widget.product.id);
+      if (mounted) {
+        setState(() {
+          _myOffer = offer ?? _myOffer;
+          _isLoadingMyOffer = false;
+        });
+      }
+    }
   }
 
   void _initVideoPlayer() {
@@ -208,12 +233,28 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               );
             },
           ),
-          if (isFarmer)
+          if (isFarmer) ...[
+            IconButton(
+              icon: Badge(
+                label: Text('${product.offersCount}'),
+                isLabelVisible: product.offersCount > 0,
+                backgroundColor: const Color(0xFFEA580C),
+                child: const Icon(Icons.inbox_rounded, color: Color(0xFF166534)),
+              ),
+              tooltip: 'প্রাপ্ত ক্রয় প্রস্তাবসমূহ',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ProductOffersScreen(product: product)),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
               tooltip: 'লিস্টিং মুছুন',
               onPressed: () => _confirmDelete(context, repo, product),
             ),
+          ],
           const SizedBox(width: 4),
         ],
       ),
@@ -919,20 +960,48 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return Row(
         children: [
           Expanded(
+            flex: 1,
             child: OutlinedButton.icon(
               onPressed: () => _confirmDelete(context, repo, product),
-              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
               label: const Text(
-                'লিস্টিং মুছে ফেলুন',
+                'মুছে ফেলুন',
                 style: TextStyle(
                   color: Colors.redAccent,
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 side: const BorderSide(color: Colors.redAccent),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 2,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ProductOffersScreen(product: product)),
+                );
+              },
+              icon: const Icon(Icons.inventory_2_outlined, color: Colors.white, size: 18),
+              label: Text(
+                'প্রাপ্ত ক্রয় প্রস্তাব (${product.offersCount > 0 ? _toBnDigits(product.offersCount) : "০"}টি)',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF166534),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                elevation: 2,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
@@ -974,24 +1043,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         const SizedBox(width: 10),
         Expanded(
           flex: 2,
-          child: ElevatedButton.icon(
-            onPressed: () => _showOfferBottomSheet(context, product),
-            icon: const Icon(Icons.shopping_bag_outlined, color: Colors.white),
-            label: const Text(
-              'ক্রয় প্রস্তাব দিন',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEA580C),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
+          child: _buildBuyerOfferButton(context, repo, product),
         ),
       ],
     );
@@ -1089,82 +1141,781 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   void _showOfferBottomSheet(BuildContext context, ProductListing product) {
+    final repo = context.read<KrishiRepository>();
     final offerPriceController = TextEditingController(text: product.expectedPrice.toStringAsFixed(0));
-    final offerQtyController = TextEditingController(text: product.quantity.toStringAsFixed(0));
+    final offerQtyController = TextEditingController(
+      text: (product.remainingQuantity > 0 ? product.remainingQuantity : product.quantity).toStringAsFixed(0),
+    );
+    final locationController = TextEditingController(
+      text: repo.currentBuyer.district.isNotEmpty ? repo.currentBuyer.district : 'ঢাকা',
+    );
+    final noteController = TextEditingController();
+    DateTime? selectedDate = DateTime.now().add(const Duration(days: 2));
+    bool isSubmitting = false;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final qty = double.tryParse(offerQtyController.text.trim()) ?? 0.0;
+            final price = double.tryParse(offerPriceController.text.trim()) ?? 0.0;
+            final totalAmount = qty * price;
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.85,
+                ),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Handle bar
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+
+                      // Title Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'ক্রয় প্রস্তাব পাঠান (Purchase Offer)',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  product.title,
+                                  style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                            onPressed: () => Navigator.pop(ctx),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Expected Price & Stock Reference Card
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            Column(
+                              children: [
+                                const Text('কাঙ্ক্ষিত দর', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '৳${_toBnDigits(product.expectedPrice.toStringAsFixed(0))}/${product.unit.labelBn}',
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
+                                ),
+                              ],
+                            ),
+                            Container(width: 1, height: 28, color: const Color(0xFFCBD5E1)),
+                            Column(
+                              children: [
+                                const Text('সর্বনিম্ন দর', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '৳${_toBnDigits(product.minPrice.toStringAsFixed(0))}/${product.unit.labelBn}',
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFEA580C)),
+                                ),
+                              ],
+                            ),
+                            Container(width: 1, height: 28, color: const Color(0xFFCBD5E1)),
+                            Column(
+                              children: [
+                                const Text('অবশিষ্ট মজুত', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${_toBnDigits((product.remainingQuantity > 0 ? product.remainingQuantity : product.quantity).toStringAsFixed(0))} ${product.unit.labelBn}',
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Quantity Input
+                      TextField(
+                        controller: offerQtyController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        onChanged: (_) => setModalState(() {}),
+                        decoration: InputDecoration(
+                          labelText: 'প্রস্তাবিত পরিমাণ (${product.unit.labelBn}) *',
+                          hintText: 'যেমন: ৫০০',
+                          prefixIcon: const Icon(Icons.scale_rounded, color: Color(0xFF166534), size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Price Input
+                      TextField(
+                        controller: offerPriceController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        onChanged: (_) => setModalState(() {}),
+                        decoration: InputDecoration(
+                          labelText: 'আপনার প্রস্তাবিত দর (৳ প্রতি ${product.unit.labelBn}) *',
+                          hintText: 'যেমন: ৪২',
+                          prefixIcon: const Icon(Icons.payments_outlined, color: Color(0xFFEA580C), size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Quick Suggestion Chips for Price
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          ActionChip(
+                            label: Text('কাঙ্ক্ষিত: ৳${product.expectedPrice.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11.5)),
+                            backgroundColor: const Color(0xFFF1F8F3),
+                            onPressed: () {
+                              offerPriceController.text = product.expectedPrice.toStringAsFixed(0);
+                              setModalState(() {});
+                            },
+                          ),
+                          ActionChip(
+                            label: Text('সর্বনিম্ন: ৳${product.minPrice.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11.5)),
+                            backgroundColor: const Color(0xFFFFF7ED),
+                            onPressed: () {
+                              offerPriceController.text = product.minPrice.toStringAsFixed(0);
+                              setModalState(() {});
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Total Calculation Card
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F8F3),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFBBF7D0)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'সর্বমোট সম্ভাব্য মূল্য:',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
+                            ),
+                            Text(
+                              '৳${_toBnDigits(totalAmount.toStringAsFixed(0))}',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Delivery Date Picker
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate ?? DateTime.now().add(const Duration(days: 2)),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 90)),
+                          );
+                          if (picked != null) {
+                            setModalState(() => selectedDate = picked);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF166534)),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  selectedDate != null
+                                      ? 'ডেলিভারি তারিখ: ${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}'
+                                      : 'ডেলিভারি গ্রহণের তারিখ নির্ধারণ করুন',
+                                  style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
+                                ),
+                              ),
+                              const Icon(Icons.arrow_drop_down, color: Color(0xFF64748B)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Delivery Location Input
+                      TextField(
+                        controller: locationController,
+                        decoration: InputDecoration(
+                          labelText: 'ডেলিভারির স্থান / আরত / বাজার',
+                          hintText: 'যেমন: কারওয়ান বাজার, ঢাকা',
+                          prefixIcon: const Icon(Icons.location_on_outlined, color: Color(0xFF64748B), size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Note Input
+                      TextField(
+                        controller: noteController,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          labelText: 'অতিরিক্ত নোট (ঐচ্ছিক)',
+                          hintText: 'গ্রেড ও পরিবহন সম্পর্কিত বিশেষ কোনো শর্ত থাকলে লিখুন...',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.all(12),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Submit Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: isSubmitting
+                              ? null
+                              : () async {
+                                  final q = double.tryParse(offerQtyController.text.trim()) ?? 0.0;
+                                  final p = double.tryParse(offerPriceController.text.trim()) ?? 0.0;
+
+                                  if (q <= 0) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('অনুগ্রহ করে সঠিক পরিমাণ দিন।')),
+                                    );
+                                    return;
+                                  }
+                                  if (p <= 0) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('অনুগ্রহ করে সঠিক প্রস্তাবিত দর দিন।')),
+                                    );
+                                    return;
+                                  }
+
+                                  setModalState(() => isSubmitting = true);
+
+                                  final dateStr = selectedDate != null
+                                      ? "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}"
+                                      : "";
+
+                                  final ok = await repo.submitProductOffer(
+                                    productId: product.id,
+                                    qty: q,
+                                    unit: product.unit,
+                                    price: p,
+                                    deliveryLocation: locationController.text.trim(),
+                                    expectedDeliveryDate: dateStr,
+                                    note: noteController.text.trim(),
+                                  );
+
+                                  if (ctx.mounted) {
+                                    Navigator.pop(ctx);
+                                  }
+
+                                  if (context.mounted) {
+                                    if (ok) {
+                                      _fetchMyOffer();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('✓ আপনার ক্রয় প্রস্তাব সফলভাবে কৃষকের নিকট পাঠানো হয়েছে!'),
+                                          backgroundColor: Color(0xFF166534),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('❌ প্রস্তাব পাঠাতে সমস্যা হয়েছে। পুনরায় চেষ্টা করুন।'),
+                                          backgroundColor: Colors.red,
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEA580C),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 2,
+                          ),
+                          child: isSubmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Text(
+                                  'প্রস্তাব নিশ্চিত করুন',
+                                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildBuyerOfferButton(
+    BuildContext context,
+    KrishiRepository repo,
+    ProductListing product,
+  ) {
+    final myOffer = _myOffer ?? repo.getCachedOfferForProduct(product.id);
+
+    if (_isLoadingMyOffer && myOffer == null) {
+      return ElevatedButton(
+        onPressed: null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFF1F5F9),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF64748B)),
+        ),
+      );
+    }
+
+    if (myOffer != null) {
+      if (myOffer.status == OfferStatus.accepted) {
+        return ElevatedButton.icon(
+          onPressed: () => _showMyOfferDetailsSheet(context, myOffer, product),
+          icon: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+          label: const Text(
+            'গৃহীত প্রস্তাব (Accepted ✅)',
+            style: TextStyle(
               color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              fontWeight: FontWeight.bold,
+              fontSize: 13.5,
             ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF166534),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      } else if (myOffer.status == OfferStatus.rejected) {
+        return ElevatedButton.icon(
+          onPressed: () => _showMyOfferDetailsSheet(context, myOffer, product),
+          icon: const Icon(Icons.cancel_rounded, color: Colors.white, size: 18),
+          label: const Text(
+            'প্রস্তাব বাতিল (Rejected ❌)',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 13.5,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFDC2626),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      } else {
+        // Pending
+        return ElevatedButton.icon(
+          onPressed: () => _showMyOfferDetailsSheet(context, myOffer, product),
+          icon: const Icon(Icons.hourglass_top_rounded, color: Colors.white, size: 18),
+          label: const Text(
+            'প্রস্তাব দেওয়া হয়েছে (বিবেচনায়)',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 12.5,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFD97706),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    }
+
+    // No offer yet
+    return ElevatedButton.icon(
+      onPressed: () => _showOfferBottomSheet(context, product),
+      icon: const Icon(Icons.shopping_bag_outlined, color: Colors.white),
+      label: const Text(
+        'ক্রয় প্রস্তাব দিন',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 15,
+        ),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFFEA580C),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _showMyOfferDetailsSheet(
+    BuildContext context,
+    ProductOffer offer,
+    ProductListing product,
+  ) {
+    final totalAmount = offer.offeredQuantity * offer.pricePerUnit;
+    final isAccepted = offer.status == OfferStatus.accepted;
+    final isRejected = offer.status == OfferStatus.rejected;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+
+                // Title row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'ক্রয় প্রস্তাব পাঠান: ${product.title}',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                    const Text(
+                      'আপনার প্রেরিত ক্রয় প্রস্তাব',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: offerQtyController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'পরিমাণ (${product.unit.labelBn})',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+
+                // Status Highlight Card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isAccepted
+                        ? const Color(0xFFDCFCE7)
+                        : (isRejected ? const Color(0xFFFEE2E2) : const Color(0xFFFEF3C7)),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isAccepted
+                          ? const Color(0xFF86EFAC)
+                          : (isRejected ? const Color(0xFFFCA5A5) : const Color(0xFFFCD34D)),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        isAccepted
+                            ? Icons.check_circle_rounded
+                            : (isRejected ? Icons.cancel_rounded : Icons.hourglass_top_rounded),
+                        color: isAccepted
+                            ? const Color(0xFF15803D)
+                            : (isRejected ? const Color(0xFFDC2626) : const Color(0xFFB45309)),
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isAccepted
+                                  ? 'প্রস্তাব গৃহীত হয়েছে! (Accepted ✅)'
+                                  : (isRejected
+                                      ? 'প্রস্তাবটি বাতিল করা হয়েছে (Rejected ❌)'
+                                      : 'কৃষকের বিবেচনার অপেক্ষায় রয়েছে ⏳'),
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.bold,
+                                color: isAccepted
+                                    ? const Color(0xFF15803D)
+                                    : (isRejected ? const Color(0xFFDC2626) : const Color(0xFFB45309)),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              isAccepted
+                                  ? 'কৃষক ${product.farmerName} আপনার ক্রয় প্রস্তাবটি গ্রহণ করেছেন। অবিলম্বে ডেলিভারি ও লেনদেনের বিষয় চূড়ান্ত করতে কৃষকের সাথে কথা বলুন।'
+                                  : (isRejected
+                                      ? 'কৃষক ${product.farmerName} এই মুহূর্তে আপনার প্রস্তাবটি গ্রহণ করতে পারছেন না।'
+                                      : 'আপনার ক্রয় প্রস্তাবটি কৃষক ${product.farmerName}-এর নিকট পৌঁছেছে। কৃষক অনুমোদন দিলে সাথে সাথে আপডেট পেয়ে যাবেন।'),
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: isAccepted
+                                    ? const Color(0xFF166534)
+                                    : (isRejected ? const Color(0xFF991B1B) : const Color(0xFF92400E)),
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: offerPriceController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'আপনার প্রস্তাবিত দর (৳/ইউনিট)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                const SizedBox(height: 16),
+
+                // 3-Column Metrics Card
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    children: [
+                      // 1. Quantity
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'প্রস্তাবিত পরিমাণ',
+                              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${_toBnDigits(offer.offeredQuantity.toStringAsFixed(0))} ${offer.unit.labelBn}',
+                              style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // 2. Unit Price
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'আপনার প্রস্তাবিত দর',
+                              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '৳${_toBnDigits(offer.pricePerUnit.toStringAsFixed(0))} /${offer.unit.labelBn}',
+                              style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold, color: Color(0xFFEA580C)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // 3. Total
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'সর্বমোট মূল্য',
+                              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '৳${_toBnDigits(totalAmount.toStringAsFixed(0))}',
+                              style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Details List
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildDetailRow('পণ্য', product.title),
+                      const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                      _buildDetailRow('কৃষক', '${product.farmerName} (${product.farmerDistrict})'),
+                      const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                      _buildDetailRow('কৃষকের কাঙ্ক্ষিত দর', '৳${_toBnDigits(product.expectedPrice.toStringAsFixed(0))} /${product.unit.labelBn}'),
+                      if (offer.expectedDeliveryDate.isNotEmpty) ...[
+                        const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                        _buildDetailRow('ডেলিভারির তারিখ', _toBnDigits(offer.expectedDeliveryDate)),
+                      ],
+                      if (offer.deliveryLocation.isNotEmpty) ...[
+                        const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                        _buildDetailRow('ডেলিভারি স্থান', offer.deliveryLocation),
+                      ],
+                      if (offer.note.isNotEmpty) ...[
+                        const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                        _buildDetailRow('আপনার নোট', offer.note),
+                      ],
+                      if (offer.createdAt.isNotEmpty) ...[
+                        const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                        _buildDetailRow('প্রস্তাব প্রেরণের সময়', _toBnDigits(offer.createdAt)),
+                      ],
+                    ],
                   ),
                 ),
                 const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('✓ আপনার ক্রয় প্রস্তাব কৃষকের নিকট পাঠানো হয়েছে!'),
-                          backgroundColor: Color(0xFF166534),
-                          behavior: SnackBarBehavior.floating,
+
+                // Action Buttons Row
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEA580C),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: const Text('বন্ধ করুন', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+                      ),
                     ),
-                    child: const Text('প্রস্তাব সাবমিট করুন', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                  ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('কল করা হচ্ছে: ${product.farmerName}'),
+                              backgroundColor: const Color(0xFF166534),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.call, color: Colors.white, size: 18),
+                        label: const Text(
+                          'কৃষককে কল করুন',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF166534),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+            textAlign: TextAlign.right,
+          ),
+        ),
+      ],
     );
   }
 

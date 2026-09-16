@@ -36,15 +36,32 @@ class OrderDetailDialog extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('মোট মূল্য:'),
+                const Text('মোট পণ্য মূল্য:'),
                 Text('${AppConst.currencySymbol}${order.totalAmount.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ],
             ),
+            const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('২০% ডিপোজিট:'),
-                Text('${AppConst.currencySymbol}${order.depositRequired.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen)),
+                const Text('ডেলিভারি চার্জ (চার্ট):', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                Text('${AppConst.currencySymbol}${order.deliveryCharge.toStringAsFixed(0)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('সার্ভিস ফি (৫%):', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                Text('${AppConst.currencySymbol}${(order.totalAmount * 0.05).toStringAsFixed(0)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('অগ্রিম প্রদেয় মোট চার্জ:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('${AppConst.currencySymbol}${(order.advancePayableAmount > 0 ? order.advancePayableAmount : order.depositRequired).toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen, fontSize: 15)),
               ],
             ),
             const SizedBox(height: 12),
@@ -57,11 +74,57 @@ class OrderDetailDialog extends StatelessWidget {
             _buildStepRow('৩. ডেলিভারি সম্পন্ন', order.deliveryInfo.transportStatus.index >= 3),
 
             const SizedBox(height: 16),
-            if (!order.isDepositPaid && controller.currentRole == UserRole.buyer)
-              CustomButton(
-                text: '২০% ডিপোজিট প্রদান করুন (৳${order.depositRequired.toStringAsFixed(0)})',
-                onTap: () => controller.payDeposit(order.id),
-              ),
+            if (!order.isDepositPaid && order.paymentStatus != 'confirmed' && controller.currentRole == UserRole.buyer) ...[
+              if (order.orderStatus == OrderStatus.pending)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.search, color: Color(0xFF1D4ED8), size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'কালেকশন হাবে পণ্যের মান ও ওজন যাচাই প্রক্রিয়াধীন। যাচাই শেষে অনুমোদিত হলে পেমেন্ট বাটন চালু হবে।',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF1E40AF)),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (order.paymentStatus == 'pending_verification' || order.orderStatus == OrderStatus.paymentPending)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFFDE68A)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.hourglass_top, color: Color(0xFFB45309), size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'আপনার পেমেন্ট প্রুফ অ্যাডমিন কর্তৃক যাচাই করা হচ্ছে। অনুগ্রহ করে অপেক্ষা করুন।',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF92400E)),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                CustomButton(
+                  text: 'চার্জ পরিশোধ করুন (৳${(order.advancePayableAmount > 0 ? order.advancePayableAmount : order.depositRequired).toStringAsFixed(0)})',
+                  onTap: () => controller.payDeposit(order.id),
+                ),
+            ],
 
             if (controller.currentRole == UserRole.farmer)
               Padding(

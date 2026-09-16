@@ -157,7 +157,7 @@ class _DepositPaymentScreenState extends State<DepositPaymentScreen> {
             ],
           ),
           content: const Text(
-            'আপনার ২০% ডিপোজিট পেমেন্টের তথ্য ও প্রমাণাদি এডমিন শাখায় পাঠানো হয়েছে। এডমিন টাকা প্রাপ্তি যাচাই করে অর্ডারটি দ্রুত প্রসেস করবেন।',
+            'আপনার ডেলিভারি ও সার্ভিস চার্জের তথ্য ও প্রমাণাদি এডমিন শাখায় পাঠানো হয়েছে। এডমিন টাকা প্রাপ্তি যাচাই করে পণ্য পরিবহনের জন্য রওনা করাবেন।',
             style: TextStyle(fontSize: 14, color: Color(0xFF334155), height: 1.4),
           ),
           actions: [
@@ -194,7 +194,7 @@ class _DepositPaymentScreenState extends State<DepositPaymentScreen> {
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text(
-          'ডিপোজিট পেমেন্ট (Escrow)',
+          'ডেলিভারি ও সার্ভিস চার্জ পরিশোধ',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: AppColors.primaryGreen,
@@ -287,8 +287,8 @@ class _DepositPaymentScreenState extends State<DepositPaymentScreen> {
                           ),
                         ),
                         Text(
-                          'মোট: ৳${order.totalAmount.toStringAsFixed(0)}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                          'মোট পণ্য মূল্য: ৳${order.totalAmount.toStringAsFixed(0)}',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
                         ),
                       ],
                     ),
@@ -297,11 +297,27 @@ class _DepositPaymentScreenState extends State<DepositPaymentScreen> {
                       order.productTitle,
                       style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('ডেলিভারি চার্জ (চার্ট অনুযায়ী):', style: TextStyle(fontSize: 13, color: Color(0xFF475569))),
+                        Text('৳ ${order.deliveryCharge.toStringAsFixed(0)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('কৃষিবাজার সার্ভিস ফি (৫%):', style: TextStyle(fontSize: 13, color: Color(0xFF475569))),
+                        Text('৳ ${(order.totalAmount * 0.05).toStringAsFixed(0)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                      ],
+                    ),
                     const SizedBox(height: 14),
                     const Divider(height: 1, color: Color(0xFFF1F5F9)),
                     const SizedBox(height: 14),
 
-                    // 20% Deposit Highlight Box
+                    // Advance Charges Highlight Box
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
@@ -317,18 +333,18 @@ class _DepositPaymentScreenState extends State<DepositPaymentScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: const [
                               Text(
-                                'প্রদেয় ২০% অগ্রিম ডিপোজিট',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF166534)),
+                                'মোট অগ্রিম প্রদেয় চার্জ',
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF166534)),
                               ),
                               SizedBox(height: 2),
                               Text(
-                                '(কৃষিবাজার এসক্রো তহবিলে জমা)',
+                                '(ডেলিভারি চার্জ + প্ল্যাটফর্ম ফি)',
                                 style: TextStyle(fontSize: 11, color: Color(0xFF15803D)),
                               ),
                             ],
                           ),
                           Text(
-                            '৳ ${order.depositRequired.toStringAsFixed(0)}',
+                            '৳ ${(order.advancePayableAmount > 0 ? order.advancePayableAmount : order.depositRequired).toStringAsFixed(0)}',
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,

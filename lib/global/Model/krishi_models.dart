@@ -85,6 +85,7 @@ enum OfferStatus {
 
 enum OrderStatus {
   pending('অপেক্ষমাণ'),
+  qualityApproved('গুণমান অনুমোদিত (চার্জ পরিশোধ করুন) ⏳'),
   paymentPending('পেমেন্ট যাচাই প্রক্রিয়াধীন ⏳'),
   paymentConfirmed('ডিপোজিট প্রদান সম্পন্ন ✅'),
   collectionVerified('হাব ওজন ও গুণমান যাচাই সম্পন্ন ⚖️'),
@@ -512,6 +513,7 @@ class ProductListing {
   final String? videoUrl;
   final String? videoNote;
   final ProductStatus status;
+  final int offersCount;
   final String createdAt;
 
   ProductListing({
@@ -536,6 +538,7 @@ class ProductListing {
     this.videoUrl,
     this.videoNote,
     this.status = ProductStatus.active,
+    this.offersCount = 0,
     required this.createdAt,
   });
 
@@ -613,6 +616,7 @@ class ProductListing {
       videoUrl: json['video_url']?.toString(),
       videoNote: json['video_note']?.toString(),
       status: ProductStatus.active,
+      offersCount: (json['offers_count'] is num) ? (json['offers_count'] as num).toInt() : 0,
       createdAt: json['created_at']?.toString() ?? 'এখনই',
     );
   }
@@ -861,6 +865,91 @@ class FarmerOffer {
   }
 }
 
+class ProductOffer {
+  final String id;
+  final String productId;
+  final String buyerId;
+  final String buyerName;
+  final String buyerBusinessName;
+  final String buyerPhone;
+  final String buyerDistrict;
+  final String buyerPhotoUrl;
+  final bool buyerVerified;
+  final double offeredQuantity;
+  final ProductUnit unit;
+  final double pricePerUnit;
+  final String deliveryLocation;
+  final String expectedDeliveryDate;
+  final String note;
+  final OfferStatus status;
+  final String createdAt;
+
+  ProductOffer({
+    required this.id,
+    required this.productId,
+    required this.buyerId,
+    required this.buyerName,
+    required this.buyerBusinessName,
+    required this.buyerPhone,
+    required this.buyerDistrict,
+    this.buyerPhotoUrl = '',
+    this.buyerVerified = true,
+    required this.offeredQuantity,
+    required this.unit,
+    required this.pricePerUnit,
+    this.deliveryLocation = '',
+    this.expectedDeliveryDate = '',
+    this.note = '',
+    this.status = OfferStatus.pending,
+    required this.createdAt,
+  });
+
+  factory ProductOffer.fromBackendMap(Map<String, dynamic> json) {
+    // unit mapping
+    final unitStr = (json['unit'] ?? '').toString();
+    ProductUnit u = ProductUnit.kg;
+    if (unitStr.contains('মণ') || unitStr.contains('mon')) {
+      u = ProductUnit.mon;
+    } else if (unitStr.contains('টন') || unitStr.contains('ton')) {
+      u = ProductUnit.ton;
+    }
+
+    // status mapping
+    final statusStr = (json['status'] ?? 'pending').toString().toLowerCase();
+    OfferStatus st = OfferStatus.pending;
+    if (statusStr.contains('accept') || statusStr.contains('গৃহীত')) {
+      st = OfferStatus.accepted;
+    } else if (statusStr.contains('reject') || statusStr.contains('বাতিল')) {
+      st = OfferStatus.rejected;
+    }
+
+    return ProductOffer(
+      id: (json['id'] ?? '').toString(),
+      productId: (json['product_id'] ?? '').toString(),
+      buyerId: (json['buyer_id'] ?? '').toString(),
+      buyerName: (json['buyer_name'] ?? 'পাইকার').toString(),
+      buyerBusinessName: (json['buyer_business_name'] ?? json['buyer_name'] ?? 'পাইকারি প্রতিষ্ঠান').toString(),
+      buyerPhone: (json['buyer_phone'] ?? '').toString(),
+      buyerDistrict: (json['buyer_district'] ?? 'বাংলাদেশ').toString(),
+      buyerPhotoUrl: (json['buyer_photo_url'] ?? '').toString(),
+      buyerVerified: json['buyer_verified'] == true || json['buyer_verified'] == null,
+      offeredQuantity: (json['offered_quantity'] is num)
+          ? (json['offered_quantity'] as num).toDouble()
+          : (double.tryParse(json['offered_quantity']?.toString() ?? '') ?? 0.0),
+      unit: u,
+      pricePerUnit: (json['price_per_unit'] is num)
+          ? (json['price_per_unit'] as num).toDouble()
+          : (double.tryParse(json['price_per_unit']?.toString() ?? '') ?? 0.0),
+      deliveryLocation: (json['delivery_location'] ?? '').toString(),
+      expectedDeliveryDate: (json['expected_delivery_date'] ?? '').toString(),
+      note: (json['note'] ?? '').toString(),
+      status: st,
+      createdAt: (json['created_at'] ?? '').toString(),
+    );
+  }
+}
+
+
 class DeliveryInfo {
   final String pickupLocation;
   final String collectionCenter;
@@ -962,6 +1051,10 @@ class MarketplaceOrder {
   final String depositProofUrl;
   final String depositAdminFeedback;
 
+  // Delivery Chart & Advance Charges
+  final double deliveryCharge;
+  final double advancePayableAmount;
+
   MarketplaceOrder({
     required this.id,
     required this.orderNumber,
@@ -1014,6 +1107,8 @@ class MarketplaceOrder {
     this.depositTransactionId = '',
     this.depositProofUrl = '',
     this.depositAdminFeedback = '',
+    this.deliveryCharge = 0.0,
+    this.advancePayableAmount = 0.0,
   });
 
   factory MarketplaceOrder.fromBackendMap(Map<String, dynamic> json) {
@@ -1138,6 +1233,13 @@ class MarketplaceOrder {
     final String fPayoutNotes = (json['farmer_payout_notes'] ?? '').toString();
     final String fPayoutDate = (json['farmer_payout_date'] ?? '').toString();
 
+    final double delCharge = (json['delivery_charge'] is num)
+        ? (json['delivery_charge'] as num).toDouble()
+        : (double.tryParse(json['delivery_charge']?.toString() ?? '') ?? 0.0);
+    final double advPayable = (json['advance_payable_amount'] is num)
+        ? (json['advance_payable_amount'] as num).toDouble()
+        : (double.tryParse(json['advance_payable_amount']?.toString() ?? '') ?? deposit);
+
     return MarketplaceOrder(
       id: (json['id'] ?? '').toString(),
       orderNumber: (json['order_number'] ?? '').toString(),
@@ -1208,6 +1310,8 @@ class MarketplaceOrder {
       depositTransactionId: (json['deposit_transaction_id'] ?? '').toString(),
       depositProofUrl: (json['deposit_proof_url'] ?? '').toString(),
       depositAdminFeedback: (json['deposit_admin_feedback'] ?? '').toString(),
+      deliveryCharge: delCharge,
+      advancePayableAmount: advPayable > 0 ? advPayable : deposit,
     );
   }
 }

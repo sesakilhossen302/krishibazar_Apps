@@ -207,6 +207,9 @@ class KrishiRepository extends ChangeNotifier {
   List<FarmerOffer> _offers = [];
   List<FarmerOffer> get offers => _offers;
 
+  final List<ProductOffer> _productOffers = [];
+  List<ProductOffer> get productOffers => _productOffers;
+
   List<MarketplaceOrder> _orders = [];
   List<MarketplaceOrder> get orders => _orders;
 
@@ -884,6 +887,215 @@ class KrishiRepository extends ChangeNotifier {
       debugPrint('Error fetching offers for demand $demandId: $e');
     }
     return _offers.where((o) => o.demandId == demandId).toList();
+  }
+
+  // ================= PRODUCT OFFERS (পণ্যের ক্রয় প্রস্তাব) =================
+
+  Future<bool> submitProductOffer({
+    required String productId,
+    required double qty,
+    required ProductUnit unit,
+    required double price,
+    String? deliveryLocation,
+    String? expectedDeliveryDate,
+    String? note,
+  }) async {
+    final token = await SharedPrefHelper.getToken();
+    final buyerId = _currentBuyer.id;
+
+    final body = {
+      "product_id": productId,
+      "buyer_id": buyerId.isNotEmpty ? buyerId : null,
+      "buyer_name": _currentBuyer.name.isNotEmpty ? _currentBuyer.name : "পাইকার",
+      "buyer_business_name": _currentBuyer.businessName.isNotEmpty ? _currentBuyer.businessName : _currentBuyer.name,
+      "buyer_phone": _currentBuyer.phone.isNotEmpty ? _currentBuyer.phone : "০১৭০০০০০০০০",
+      "buyer_district": _currentBuyer.district.isNotEmpty ? _currentBuyer.district : "বাংলাদেশ",
+      "offered_quantity": qty,
+      "unit": unit.labelBn,
+      "price_per_unit": price,
+      "delivery_location": deliveryLocation ?? _currentBuyer.district,
+      "expected_delivery_date": expectedDeliveryDate ?? "",
+      "note": (note ?? "").trim(),
+    };
+
+    final res = await ApiClient.createProductOffer(
+      productId,
+      body,
+      token: token.isNotEmpty ? token : null,
+      buyerId: buyerId.isNotEmpty ? buyerId : null,
+    );
+
+    if (res['success'] == true && res['data'] is Map<String, dynamic>) {
+      final newOffer = ProductOffer.fromBackendMap(res['data']);
+      _productOffers.removeWhere((o) => o.id == newOffer.id);
+      _productOffers.insert(0, newOffer);
+
+      final pIndex = _products.indexWhere((p) => p.id == productId);
+      if (pIndex != -1) {
+        final oldP = _products[pIndex];
+        _products[pIndex] = ProductListing(
+          id: oldP.id,
+          farmerId: oldP.farmerId,
+          farmerName: oldP.farmerName,
+          farmerDistrict: oldP.farmerDistrict,
+          farmerVerified: oldP.farmerVerified,
+          title: oldP.title,
+          category: oldP.category,
+          quantity: oldP.quantity,
+          remainingQuantity: oldP.remainingQuantity,
+          unit: oldP.unit,
+          expectedPrice: oldP.expectedPrice,
+          minPrice: oldP.minPrice,
+          location: oldP.location,
+          availableDate: oldP.availableDate,
+          harvestDate: oldP.harvestDate,
+          qualityGrade: oldP.qualityGrade,
+          description: oldP.description,
+          imageUrls: oldP.imageUrls,
+          videoUrl: oldP.videoUrl,
+          videoNote: oldP.videoNote,
+          status: oldP.status,
+          offersCount: oldP.offersCount + 1,
+          createdAt: oldP.createdAt,
+        );
+      }
+    }
+
+    snackbarMessage = res['message'] ?? "ক্রয় প্রস্তাব সফলভাবে পাঠানো হয়েছে!";
+    notifyListeners();
+    fetchProductsFromBackend();
+    return res['success'] == true;
+  }
+
+  Future<List<ProductOffer>> fetchOffersForProduct(String productId) async {
+    try {
+      final res = await ApiClient.fetchOffersForProduct(productId);
+      if (res['success'] == true && res['data'] is List) {
+        final List list = res['data'];
+        final fetched = list.map((item) => ProductOffer.fromBackendMap(item)).toList();
+        for (var o in fetched) {
+          _productOffers.removeWhere((existing) => existing.id == o.id);
+          _productOffers.add(o);
+        }
+        notifyListeners();
+        return fetched;
+      }
+    } catch (e) {
+      debugPrint('Error fetching offers for product $productId: $e');
+    }
+    return _productOffers.where((o) => o.productId == productId).toList();
+  }
+
+  Future<ProductOffer?> fetchMyOfferForProduct(String productId) async {
+    try {
+      final token = await SharedPrefHelper.getToken();
+      final buyerId = _currentBuyer.id;
+      final res = await ApiClient.fetchMyOfferForProduct(
+        productId,
+        token: token.isNotEmpty ? token : null,
+        buyerId: buyerId.isNotEmpty ? buyerId : null,
+      );
+      if (res['success'] == true && res['data'] is Map<String, dynamic>) {
+        final offer = ProductOffer.fromBackendMap(res['data']);
+        _productOffers.removeWhere((o) => o.id == offer.id);
+        _productOffers.insert(0, offer);
+        notifyListeners();
+        return offer;
+      }
+    } catch (e) {
+      debugPrint('Error fetching my offer for product $productId: $e');
+    }
+    try {
+      return _productOffers.firstWhere(
+        (o) => o.productId == productId && (_currentBuyer.id.isEmpty || o.buyerId == _currentBuyer.id),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  ProductOffer? getCachedOfferForProduct(String productId) {
+    try {
+      return _productOffers.firstWhere(
+        (o) => o.productId == productId && (_currentBuyer.id.isEmpty || o.buyerId == _currentBuyer.id),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> acceptProductOffer(String offerId) async {
+    try {
+      final res = await ApiClient.acceptProductOffer(offerId);
+      if (res['success'] == true) {
+        final idx = _productOffers.indexWhere((o) => o.id == offerId);
+        if (idx != -1) {
+          final old = _productOffers[idx];
+          _productOffers[idx] = ProductOffer(
+            id: old.id,
+            productId: old.productId,
+            buyerId: old.buyerId,
+            buyerName: old.buyerName,
+            buyerBusinessName: old.buyerBusinessName,
+            buyerPhone: old.buyerPhone,
+            buyerDistrict: old.buyerDistrict,
+            buyerPhotoUrl: old.buyerPhotoUrl,
+            buyerVerified: old.buyerVerified,
+            offeredQuantity: old.offeredQuantity,
+            unit: old.unit,
+            pricePerUnit: old.pricePerUnit,
+            deliveryLocation: old.deliveryLocation,
+            expectedDeliveryDate: old.expectedDeliveryDate,
+            note: old.note,
+            status: OfferStatus.accepted,
+            createdAt: old.createdAt,
+          );
+        }
+        snackbarMessage = "প্রস্তাবটি সফলভাবে গ্রহণ করা হয়েছে!";
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Error accepting product offer: $e');
+    }
+    return false;
+  }
+
+  Future<bool> rejectProductOffer(String offerId) async {
+    try {
+      final res = await ApiClient.rejectProductOffer(offerId);
+      if (res['success'] == true) {
+        final idx = _productOffers.indexWhere((o) => o.id == offerId);
+        if (idx != -1) {
+          final old = _productOffers[idx];
+          _productOffers[idx] = ProductOffer(
+            id: old.id,
+            productId: old.productId,
+            buyerId: old.buyerId,
+            buyerName: old.buyerName,
+            buyerBusinessName: old.buyerBusinessName,
+            buyerPhone: old.buyerPhone,
+            buyerDistrict: old.buyerDistrict,
+            buyerPhotoUrl: old.buyerPhotoUrl,
+            buyerVerified: old.buyerVerified,
+            offeredQuantity: old.offeredQuantity,
+            unit: old.unit,
+            pricePerUnit: old.pricePerUnit,
+            deliveryLocation: old.deliveryLocation,
+            expectedDeliveryDate: old.expectedDeliveryDate,
+            note: old.note,
+            status: OfferStatus.rejected,
+            createdAt: old.createdAt,
+          );
+        }
+        snackbarMessage = "প্রস্তাবটি প্রত্যাখ্যান করা হয়েছে।";
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Error rejecting product offer: $e');
+    }
+    return false;
   }
 
   Future<MarketplaceOrder?> acceptOffer(String offerId, {FarmerOffer? fallbackOffer}) async {
