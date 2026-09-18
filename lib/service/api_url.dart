@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 
 class ApiUrl {
   /// ক্লায়েন্ট বা অন্য ফোনে টেস্ট APK বিল্ড করার জন্য পাবলিক টানেল লিংক
-  static const String publicServerUrl = "https://configured-hits-tsunami-bikini.trycloudflare.com";
+  static const String publicServerUrl = "https://venice-off-johnny-loans.trycloudflare.com";
 
   /// লোকাল সার্ভার লিংক (আপনার নিজের পিসিতে কাজ করার জন্য)
   static const String localServerUrl = "http://127.0.0.1:8000";
